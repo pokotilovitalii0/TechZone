@@ -1,28 +1,19 @@
 import { Link } from 'react-router-dom';
 import { ShoppingCart, User, Search, Menu } from 'lucide-react';
 
-// 1. Імпортуємо логотип (переконайся, що файл існує за цим шляхом!)
 import logoImg from '@/assets/logo/logo.png';
 
 const Header = () => {
 	return (
 		<header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/80 backdrop-blur-md">
 			<div className="container mx-auto px-4 h-20 flex items-center justify-between">
-
-				{/* 1. Логотип */}
 				<Link to="/" className="flex items-center gap-2 group">
-					{/* 2. Використовуємо змінну logoImg */}
-					{/* Також додав класи для розміру (h-10 w-auto), щоб лого не було гігантським */}
 					<img src={logoImg} alt="TechZone Logo" className="h-10 w-auto" />
 
 					<span className="text-2xl font-bold tracking-tight text-slate-900">
 						Tech<span className="text-sky-500">Zone</span>
 					</span>
 				</Link>
-
-				{/* ... решта коду без змін ... */}
-
-				{/* 2. Навігація (Центр) */}
 				<nav className="hidden md:flex gap-8 font-medium text-slate-600">
 					{['Каталог', 'Миші', 'Клавіатури', 'Аудіо', 'Аксесуари'].map((item) => (
 						<Link
@@ -35,11 +26,7 @@ const Header = () => {
 						</Link>
 					))}
 				</nav>
-
-				{/* 3. Пошук та Дії (Праворуч) */}
 				<div className="flex items-center gap-4">
-
-					{/* Пошук (Desktop) */}
 					<div className="hidden lg:flex items-center bg-gray-100 rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-sky-500 transition-all">
 						<Search className="w-4 h-4 text-gray-400" />
 						<input
@@ -48,14 +35,11 @@ const Header = () => {
 							className="bg-transparent border-none outline-none text-sm ml-2 w-48 text-slate-900 placeholder:text-gray-400"
 						/>
 					</div>
-
-					{/* Іконки */}
 					<div className="flex items-center gap-2">
 						<button className="p-2 hover:bg-gray-100 rounded-full transition-colors relative">
 							<ShoppingCart className="w-6 h-6 text-slate-700 hover:text-sky-500 transition-colors" />
 							<span className="absolute top-0 right-0 w-4 h-4 bg-sky-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full">2</span>
 						</button>
-
 						<Link to="/auth" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
 							<User className="w-6 h-6 text-slate-700 hover:text-sky-500 transition-colors" />
 						</Link>
