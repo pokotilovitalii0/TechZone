@@ -8,18 +8,12 @@
       "DOM.Iterable"
     ],
     "module": "ESNext",
-    // ... (інші твої налаштування)
-    /*
-      ОСЬ ВАЖЛИВА ЧАСТИНА:
-      Переконайся, що ці два рядки тут є і правильні.
-    */
     "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"
       ]
     },
-    /* (решта налаштувань) */
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

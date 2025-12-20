@@ -1,0 +1,3 @@
+/catalog/keyboards
+/catalog/mice
+/catalog/audio
