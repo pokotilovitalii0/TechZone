@@ -1,3 +1,5 @@
 /catalog/keyboards
 /catalog/mice
 /catalog/audio
+
+sky-500
