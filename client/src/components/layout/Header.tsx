@@ -5,7 +5,7 @@ import logoImg from '@/assets/logo/logo.png';
 
 const Header = () => {
 	return (
-		<header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/80 backdrop-blur-md">
+		<header className="sticky top-0 z-10000 w-full border-b border-gray-100 bg-white/80 backdrop-blur-md">
 			<div className="container mx-auto px-4 h-20 flex items-center justify-between">
 				<Link to="/" className="flex items-center gap-2 group">
 					<img src={logoImg} alt="TechZone Logo" className="h-10 w-auto" />
