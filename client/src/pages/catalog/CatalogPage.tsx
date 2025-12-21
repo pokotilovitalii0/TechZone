@@ -93,7 +93,8 @@ const CATEGORIES = ['Всі', 'Клавіатури', 'Мишки', 'Навуш�
 
 const CatalogPage = () => {
 	// --- СТАНИ ---
-	const [selectedCategory, setSelectedCategory] = useState('Всі');
+	// Тепер зберігаємо масив рядків замість одного рядка
+	const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 	const [priceRange, setPriceRange] = useState({ min: 0, max: 15000 });
 	const [searchQuery, setSearchQuery] = useState('');
 	const [sortOption, setSortOption] = useState('popular');
@@ -106,6 +107,27 @@ const CatalogPage = () => {
 	const showToast = (message: string, type: 'success' | 'info' = 'success') => {
 		setToast({ message, type });
 		setTimeout(() => setToast(null), 3000);
+	};
+
+	// --- ЛОГІКА МУЛЬТИСЕЛЕКТУ КАТЕГОРІЙ ---
+	const toggleCategory = (category: string) => {
+		if (category === 'Всі') {
+			setSelectedCategories([]); // Очистити всі фільтри категорій
+			return;
+		}
+
+		setSelectedCategories(prev => {
+			if (prev.includes(category)) {
+				return prev.filter(c => c !== category); // Видалити, якщо вже є
+			} else {
+				return [...prev, category]; // Додати, якщо немає
+			}
+		});
+	};
+
+	const isCategorySelected = (category: string) => {
+		if (category === 'Всі') return selectedCategories.length === 0;
+		return selectedCategories.includes(category);
 	};
 
 	// --- ОБРОБНИКИ ДЛЯ СЛАЙДЕРА ---
@@ -126,8 +148,9 @@ const CatalogPage = () => {
 	const filteredProducts = useMemo(() => {
 		let result = PRODUCTS;
 
-		if (selectedCategory !== 'Всі') {
-			result = result.filter(p => p.category === selectedCategory);
+		// Фільтр категорій (якщо масив не порожній)
+		if (selectedCategories.length > 0) {
+			result = result.filter(p => selectedCategories.includes(p.category));
 		}
 
 		result = result.filter(p => p.price >= priceRange.min && p.price <= priceRange.max);
@@ -145,9 +168,9 @@ const CatalogPage = () => {
 		}
 
 		return result;
-	}, [selectedCategory, priceRange, searchQuery, sortOption]);
+	}, [selectedCategories, priceRange, searchQuery, sortOption]);
 
-	const isFiltersActive = selectedCategory !== 'Всі' || priceRange.min > 0 || priceRange.max < 15000 || searchQuery !== '';
+	const isFiltersActive = selectedCategories.length > 0 || priceRange.min > 0 || priceRange.max < 15000 || searchQuery !== '';
 
 	return (
 		<div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-20 relative">
@@ -171,7 +194,9 @@ const CatalogPage = () => {
 						<div>
 							<h1 className="text-2xl font-black text-slate-900 tracking-tight">Каталог</h1>
 							<div className="text-sm text-slate-500 mt-1">
-								Техніка для професіоналів та геймерів
+								Головна / <span className="text-sky-500 font-medium">
+									{selectedCategories.length > 0 ? selectedCategories.join(', ') : 'Всі товари'}
+								</span>
 							</div>
 						</div>
 
@@ -197,18 +222,21 @@ const CatalogPage = () => {
 					{/* Row 1: Categories (Pills) */}
 					<div className="flex items-center overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
 						<div className="flex gap-2">
-							{CATEGORIES.map(cat => (
-								<button
-									key={cat}
-									onClick={() => setSelectedCategory(cat)}
-									className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${selectedCategory === cat
-											? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/30 scale-105'
-											: 'bg-white border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 hover:bg-slate-50'
-										}`}
-								>
-									{cat}
-								</button>
-							))}
+							{CATEGORIES.map(cat => {
+								const active = isCategorySelected(cat);
+								return (
+									<button
+										key={cat}
+										onClick={() => toggleCategory(cat)}
+										className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${active
+												? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/30 scale-105'
+												: 'bg-white border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 hover:bg-slate-50'
+											}`}
+									>
+										{cat}
+									</button>
+								);
+							})}
 						</div>
 					</div>
 
@@ -262,11 +290,16 @@ const CatalogPage = () => {
 						{/* Middle: Active Filters (Visible only if active) */}
 						{isFiltersActive && (
 							<div className="flex flex-wrap items-center gap-2 pl-0 xl:pl-6 xl:border-l xl:border-slate-200">
-								{selectedCategory !== 'Всі' && (
-									<button onClick={() => setSelectedCategory('Всі')} className="bg-sky-50 text-sky-700 border border-sky-100 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors">
-										{selectedCategory} <X size={12} />
+								{selectedCategories.map(cat => (
+									<button
+										key={cat}
+										onClick={() => toggleCategory(cat)}
+										className="bg-sky-50 text-sky-700 border border-sky-100 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors"
+									>
+										{cat} <X size={12} />
 									</button>
-								)}
+								))}
+
 								{(priceRange.min > 0 || priceRange.max < 15000) && (
 									<button onClick={() => setPriceRange({ min: 0, max: 15000 })} className="bg-sky-50 text-sky-700 border border-sky-100 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors">
 										{priceRange.min}-{priceRange.max} <X size={12} />
@@ -277,7 +310,7 @@ const CatalogPage = () => {
 										"{searchQuery}" <X size={12} />
 									</button>
 								)}
-								<button onClick={() => { setSelectedCategory('Всі'); setSearchQuery(''); setPriceRange({ min: 0, max: 15000 }) }} className="text-slate-400 hover:text-red-500 transition-colors p-1">
+								<button onClick={() => { setSelectedCategories([]); setSearchQuery(''); setPriceRange({ min: 0, max: 15000 }) }} className="text-slate-400 hover:text-red-500 transition-colors p-1">
 									<Trash2 size={16} />
 								</button>
 							</div>
@@ -381,7 +414,7 @@ const CatalogPage = () => {
 						<div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4"><Search size={32} /></div>
 						<h3 className="text-lg font-bold text-slate-900">Нічого не знайдено</h3>
 						<p className="text-slate-500 max-w-xs mx-auto mt-2">Спробуйте змінити фільтри або пошуковий запит.</p>
-						<button onClick={() => { setSelectedCategory('Всі'); setSearchQuery(''); setPriceRange({ min: 0, max: 15000 }) }} className="mt-6 text-sky-500 font-bold hover:text-sky-700 hover:underline transition-all">Скинути всі фільтри</button>
+						<button onClick={() => { setSelectedCategories([]); setSearchQuery(''); setPriceRange({ min: 0, max: 15000 }) }} className="mt-6 text-sky-500 font-bold hover:text-sky-700 hover:underline transition-all">Скинути всі фільтри</button>
 					</div>
 				)}
 			</div>
