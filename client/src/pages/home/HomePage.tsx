@@ -2,29 +2,31 @@ import { useState, useEffect } from 'react';
 import { ArrowRight, Star, ShoppingCart, Truck, ShieldCheck, RefreshCw, Headphones, MousePointer2, Keyboard, Headphones as AudioIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import attachSharkX68HE from '@/assets/HomePage/AttachSharkx68he.webp';
+
 const HERO_SLIDES = [
 	{
 		id: 1,
-		badge: "Нове надходження",
+		badge: "Mouse",
 		title: "Level Up Your Setup",
-		subtitle: "Найкраща периферія для кіберспорту. Швидкість та точність у кожному кліку.",
-		image: "https://resource.logitechg.com/w_692,c_lpad,ar_4:3,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/gaming/en/products/pro-x-superlight/pro-x-superlight-black-gallery-1.png?v=1",
+		subtitle: "Найкращі комп'ютерні миші по доступних цінах. Швидкість та точність у кожному кліку.",
+		image: "https://realaks.shop/wp-content/uploads/2025/04/R5-ULTRA-W-2R-%D0%BA%D0%BE%D0%BF%D1%96%D1%8F.jpg",
 		accent: "from-sky-500 to-blue-600"
 	},
 	{
 		id: 2,
-		badge: "Limited Edition",
+		badge: "Headphones",
 		title: "Feel the Rhythm",
 		subtitle: "Професійний звук для повного занурення. Почуй кожен крок ворога.",
-		image: "https://media.steelseriescdn.com/thumbs/catalogue/products/01058-arctis-7-black-2019-edition/6563774130a8474ba499cecd7db4123e.png.350x280_q100_crop-fit_optimize.png",
+		image: "https://www.mchose.store/cdn/shop/files/mchose-official-headphones-v9-pro-black-red-mchose-v9-series-wireless-gaming-headset-1166639581.jpg?v=1763699075&width=800",
 		accent: "from-purple-500 to-indigo-600"
 	},
 	{
 		id: 3,
-		badge: "Best Seller",
+		badge: "Keyboard",
 		title: "Ultimate Control",
 		subtitle: "Механічні клавіатури з миттєвим відгуком. Твоя перевага у кожній грі.",
-		image: "https://assets3.razerzone.com/A-9X6a7i-77M6qF-77M6qF/razer-huntsman-v2-tenkeyless-linear-optical-switch-black-gallery-1.png",
+		image: "https://attackshark.com/cdn/shop/files/1500X68.jpg?v=1752039873&width=800",
 		accent: "from-emerald-500 to-teal-600"
 	}
 ];
@@ -127,9 +129,9 @@ export default function HomePage() {
 					<div className="grid grid-cols-1 md:grid-cols-12 gap-6">
 						{/* Велика картка - Клавіатури (Світла) */}
 						<Link to="/catalog/keyboards" className="md:col-span-8 group relative overflow-hidden rounded-3xl bg-slate-50 border border-slate-100 h-[300px] md:h-[400px]">
-							<div className="absolute  top-0 right-[-50px] w-2/3 h-full overflow-hidden">
+							<div className="absolute                   top-0 right-[-50px] w-2/3 h-full overflow-hidden">
 								<img
-									src="https://content2.rozetka.com.ua/goods/images/big/531467393.jpg"
+									src={attachSharkX68HE}
 									className="w-full h-full object-cover opacity-20 grayscale group-hover:grayscale-0 group-hover:opacity-40 group-hover:scale-110 transition-all duration-700"
 									alt="Keyboards"
 								/>
