@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, ShoppingCart, Heart, ArrowLeft, Truck, ShieldCheck, RefreshCw, Minus, Plus, CheckCircle, Share2, ChevronRight, User } from 'lucide-react';
 
+import { useSetAtom } from 'jotai';
+import { addToCartAtom } from '../../store/cartAtoms';
+
 // --- ПОЧАТКОВІ ДАНІ ---
 const INITIAL_PRODUCT = {
 	id: 1,
@@ -73,11 +76,6 @@ const ProductPage = () => {
 		if (type === 'inc' && quantity < 10) setQuantity(prev => prev + 1);
 	};
 
-	const addToCart = () => {
-		showToast(`Додано в кошик: ${quantity} шт.`);
-	};
-
-	// Обробка відправки відгуку
 	const handleSubmitReview = (e: React.FormEvent) => {
 		e.preventDefault();
 
@@ -87,20 +85,33 @@ const ProductPage = () => {
 		}
 
 		const newReview = {
-			id: Date.now(), // Тимчасовий унікальний ID
+			id: Date.now(),
 			user: newReviewUser,
 			rating: newReviewRating,
 			text: newReviewText,
-			date: new Date().toLocaleDateString('uk-UA') // Поточна дата
+			date: new Date().toLocaleDateString('uk-UA')
 		};
 
-		setReviews([newReview, ...reviews]); // Додаємо новий відгук на початок
+		setReviews([newReview, ...reviews]);
 
-		// Очищаємо форму
 		setNewReviewUser('');
 		setNewReviewText('');
 		setNewReviewRating(0);
 		showToast('Дякуємо за ваш відгук!');
+	};
+
+	const addToCart = useSetAtom(addToCartAtom);
+
+	const handleAddToCart = () => {
+		addToCart({
+			id: product.id,
+			name: product.name,
+			price: product.price,
+			image: product.images[0],
+			quantity: quantity,
+			selectedColor: product.colors[selectedColor].name
+		});
+		showToast(`Додано в кошик: ${quantity} шт.`);
 	};
 
 	if (!product) return <div>Товар не знайдено</div>;
@@ -208,7 +219,9 @@ const ProductPage = () => {
 										<span className="w-12 text-center font-bold text-lg">{quantity}</span>
 										<button onClick={() => handleQuantityChange('inc')} className="p-3 text-slate-500 hover:bg-white hover:text-slate-900 rounded-lg transition-all"><Plus size={18} /></button>
 									</div>
-									<button onClick={addToCart} className="flex-1 bg-slate-900 text-white font-bold text-lg py-3 px-8 rounded-xl hover:bg-sky-500 hover:shadow-lg hover:shadow-sky-200 transition-all flex items-center justify-center gap-2">
+									<button
+										onClick={handleAddToCart}
+										className="flex-1 bg-slate-900 text-white font-bold text-lg py-3 px-8 rounded-xl hover:bg-sky-500 hover:shadow-lg hover:shadow-sky-200 transition-all flex items-center justify-center gap-2">
 										<ShoppingCart size={20} /> Купити
 									</button>
 									<button className="p-4 rounded-xl border-2 border-slate-200 text-slate-400 hover:border-slate-900 hover:text-slate-900 transition-all"><Share2 size={20} /></button>
