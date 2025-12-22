@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, ChevronDown, Star, ShoppingCart, Heart, Search, X, SlidersHorizontal, LayoutGrid, Grid2X2, Grid3X3, CheckCircle, Trash2, Box } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // --- МОКОВІ ДАНІ ---
 const PRODUCTS = [
@@ -229,8 +230,8 @@ const CatalogPage = () => {
 										key={cat}
 										onClick={() => toggleCategory(cat)}
 										className={`px-5 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-all border ${active
-												? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/30 scale-105'
-												: 'bg-white border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 hover:bg-slate-50'
+											? 'bg-sky-500 border-sky-500 text-white shadow-lg shadow-sky-500/30 scale-105'
+											: 'bg-white border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 hover:bg-slate-50'
 											}`}
 									>
 										{cat}
@@ -348,9 +349,9 @@ const CatalogPage = () => {
 				{/* --- PRODUCTS GRID (FULL WIDTH) --- */}
 				{filteredProducts.length > 0 ? (
 					<div className={`grid gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 ${gridCols === 2 ? 'grid-cols-1 sm:grid-cols-2' :
-							gridCols === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-								gridCols === 4 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' :
-									'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
+						gridCols === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+							gridCols === 4 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' :
+								'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5'
 						}`}>
 						{filteredProducts.map((product) => (
 							<div key={product.id} className="group bg-white rounded-2xl border border-slate-200/60 p-4 flex flex-col hover:shadow-xl hover:shadow-slate-200/50 hover:border-sky-200 transition-all duration-300 relative">
@@ -366,13 +367,15 @@ const CatalogPage = () => {
 									<Heart size={20} />
 								</button>
 
-								<div className="h-56 w-full flex items-center justify-center mb-4 overflow-hidden rounded-xl bg-slate-50/50 group-hover:bg-white transition-colors">
+								<Link to={`/product/${product.id}`} className="h-56 w-full flex items-center justify-center mb-4 overflow-hidden rounded-xl bg-slate-50/50 group-hover:bg-white transition-colors">
 									<img src={product.image} alt={product.name} className={`h-full w-auto object-contain mix-blend-multiply transition-transform duration-500 ease-out group-hover:scale-110 ${!product.inStock && 'grayscale opacity-60'}`} />
-								</div>
+								</Link>
 
 								<div className="flex-grow flex flex-col">
 									<div className="text-xs text-sky-500 font-bold uppercase tracking-wide mb-1 opacity-80">{product.category}</div>
-									<h3 className={`font-bold text-slate-900 mb-2 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2 ${gridCols >= 4 ? 'text-sm' : 'text-lg'}`}>{product.name}</h3>
+									<Link to={`/product/${product.id}`} >
+										<h3 className={`font-bold text-slate-900 mb-2 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2 ${gridCols >= 4 ? 'text-sm' : 'text-lg'}`}>{product.name}</h3>
+									</Link>
 
 									{/* Colors */}
 									{product.colors && (
@@ -418,7 +421,7 @@ const CatalogPage = () => {
 					</div>
 				)}
 			</div>
-		</div>
+		</div >
 	);
 };
 

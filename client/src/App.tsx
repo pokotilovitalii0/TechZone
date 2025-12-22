@@ -4,6 +4,7 @@ import HomePage from './pages/home/HomePage';
 import CatalogPage from './pages/catalog/CatalogPage';
 import CartPage from './pages/cart/CartPage';
 import AuthPage from './pages/auth/AuthPage';
+import ProductPage from './pages/catalog/ProductPage';
 
 function App() {
   return (
@@ -15,8 +16,8 @@ function App() {
         <Route index element={<HomePage />} />
         <Route path="catalog" element={<CatalogPage />} />
         <Route path="cart" element={<CartPage />} />
+        <Route path="/product/:id" element={<ProductPage />} />
         <Route path="auth" element={<AuthPage />} />
-
         {/* Сторінка 404 */}
         <Route path="*" element={<h1 className="text-red-500">404 - Not Found</h1>} />
       </Route>
