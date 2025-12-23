@@ -22,7 +22,7 @@ const CartPage = () => {
 				</div>
 				<h2 className="text-2xl font-bold text-slate-900 mb-2">Ваш кошик порожній</h2>
 				<p className="text-slate-500 mb-8 text-center max-w-md">Схоже, ви ще нічого не додали. Перегляньте наш каталог, там багато цікавого!</p>
-				<Link to="/" className="bg-sky-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-sky-600 transition-colors flex items-center gap-2">
+				<Link to="/catalog" className="bg-sky-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-sky-600 transition-colors flex items-center gap-2">
 					<ArrowLeft size={20} /> Повернутися до покупок
 				</Link>
 			</div>
@@ -65,7 +65,7 @@ const CartPage = () => {
 										>
 											<Minus size={16} />
 										</button>
-										<span className="w-8 text-center font-bold text-sm">{item.quantity}</span>
+										<span className="text-black w-8 text-center font-bold text-sm">{item.quantity}</span>
 										<button
 											onClick={() => updateQuantity({ id: item.id, quantity: item.quantity + 1 })}
 											className="p-2 text-slate-500 hover:bg-white hover:text-slate-900 rounded-md transition-all"
