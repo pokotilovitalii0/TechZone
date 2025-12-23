@@ -16,6 +16,7 @@ function App() {
         {/* Вкладені маршрути */}
         <Route index element={<HomePage />} />
         <Route path="catalog" element={<CatalogPage />} />
+        <Route path="/catalog/:categorySlug" element={<CatalogPage />} />
         <Route path="cart" element={<CartPage />} />
         <Route path="/product/:id" element={<ProductPage />} />
         {/* Сторінка 404 */}
