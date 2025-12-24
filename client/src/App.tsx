@@ -7,6 +7,7 @@ import AuthPage from './pages/auth/AuthPage';
 import ProductPage from './pages/catalog/ProductPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import LoginPage from './pages/auth/LoginPage';
+import CheckoutPage from './pages/checkout/CheckoutPage';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/catalog/:categorySlug" element={<CatalogPage />} />
         <Route path="cart" element={<CartPage />} />
         <Route path="/product/:id" element={<ProductPage />} />
+        <Route path="/checkout" element={<CheckoutPage />} />
         {/* Сторінка 404 */}
         <Route path="*" element={<h1 className="text-red-500">404 - Not Found</h1>} />
       </Route>

@@ -102,9 +102,12 @@ const CartPage = () => {
 								</div>
 							</div>
 
-							<button className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-sky-500 hover:shadow-lg hover:shadow-sky-200 transition-all flex items-center justify-center gap-2">
+							<Link
+								to="/checkout"
+								className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-sky-500 hover:shadow-lg hover:shadow-sky-200 transition-all flex items-center justify-center gap-2"
+							>
 								Оформити замовлення <ArrowRight size={20} />
-							</button>
+							</Link>
 						</div>
 					</div>
 				</div>
