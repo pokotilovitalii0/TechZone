@@ -10,6 +10,7 @@ import LoginPage from './pages/auth/LoginPage';
 import CheckoutPage from './pages/checkout/CheckoutPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import WishlistPage from './pages/wishlist/WishlistPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
   return (
@@ -25,8 +26,7 @@ function App() {
         <Route path="/product/:id" element={<ProductPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        {/* Сторінка 404 */}
-        <Route path="*" element={<h1 className="text-red-500">404 - Not Found</h1>} />
+        <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/login" element={<LoginPage />} />
