@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Filter, ChevronDown, Star, ShoppingCart, Heart, Search, X, LayoutGrid, Grid2X2, Grid3X3, CheckCircle, Trash2, Box } from 'lucide-react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { addToCartAtom } from '../../store/cartAtoms';
 import { wishlistAtom, toggleWishlistAtom } from '../../store/wishlistAtoms';
@@ -82,7 +82,7 @@ const PRODUCTS = [
 		name: 'SteelSeries QcK Heavy XXL',
 		price: 1499,
 		oldPrice: null,
-		category: 'Аксесуари', // Змінив категорію під англійський слаг
+		category: 'Аксесуари',
 		image: 'https://content2.rozetka.com.ua/goods/images/big/10747043.jpg',
 		rating: 4.8,
 		reviews: 340,
@@ -95,7 +95,6 @@ const PRODUCTS = [
 
 const CATEGORIES = ['Всі', 'Клавіатури', 'Мишки', 'Навушники', 'Аксесуари'];
 
-// Словник для перекладу URL -> Категорія
 const CATEGORY_SLUGS: Record<string, string> = {
 	'mice': 'Мишки',
 	'keyboards': 'Клавіатури',
@@ -107,6 +106,7 @@ const CatalogPage = () => {
 	// --- HOOKS ---
 	const { categorySlug } = useParams();
 	const navigate = useNavigate();
+	const [searchParams] = useSearchParams(); // Для читання ?q=...
 
 	// Jotai Atoms
 	const addToCart = useSetAtom(addToCartAtom);
@@ -116,13 +116,17 @@ const CatalogPage = () => {
 	// --- СТАНИ ---
 	const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 	const [priceRange, setPriceRange] = useState({ min: 0, max: 15000 });
-	const [searchQuery, setSearchQuery] = useState('');
+
+	// Ініціалізуємо пошук значенням з URL або пустим рядком
+	const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+
 	const [sortOption, setSortOption] = useState('popular');
 	const [gridCols, setGridCols] = useState<2 | 3 | 4 | 5>(4);
 	const [toast, setToast] = useState<{ message: string, type: 'success' | 'info' } | null>(null);
 
 	// --- ЕФЕКТИ ---
-	// Синхронізація URL з фільтрами
+
+	// 1. Синхронізація категорії з URL (напр. /catalog/mice)
 	useEffect(() => {
 		if (categorySlug && CATEGORY_SLUGS[categorySlug]) {
 			setSelectedCategories([CATEGORY_SLUGS[categorySlug]]);
@@ -131,13 +135,20 @@ const CatalogPage = () => {
 		}
 	}, [categorySlug]);
 
+	// 2. Синхронізація пошуку з URL (напр. /catalog?q=Razer)
+	useEffect(() => {
+		const queryFromUrl = searchParams.get('q');
+		// Якщо в URL є пошук - оновлюємо стейт. Якщо немає (і це не перше завантаження) - можна очистити або залишити як є.
+		// Тут ми просто синхронізуємо:
+		setSearchQuery(queryFromUrl || '');
+	}, [searchParams]);
+
 	// --- ЛОГІКА ---
 	const showToast = (message: string, type: 'success' | 'info' = 'success') => {
 		setToast({ message, type });
 		setTimeout(() => setToast(null), 3000);
 	};
 
-	// Перемикання категорій з оновленням URL
 	const toggleCategory = (category: string) => {
 		if (category === 'Всі') {
 			navigate('/catalog');
@@ -147,10 +158,8 @@ const CatalogPage = () => {
 		const slug = Object.keys(CATEGORY_SLUGS).find(key => CATEGORY_SLUGS[key] === category);
 
 		if (selectedCategories.includes(category)) {
-			// Якщо знімаємо активну категорію - скидаємо URL
 			navigate('/catalog');
 		} else {
-			// Якщо вибираємо нову
 			if (slug) {
 				navigate(`/catalog/${slug}`);
 			} else {
@@ -164,20 +173,7 @@ const CatalogPage = () => {
 		return selectedCategories.includes(category);
 	};
 
-	// Додавання в кошик
-	const handleAddToCart = (product: any) => {
-		addToCart({
-			id: product.id,
-			name: product.name,
-			price: product.price,
-			image: product.image,
-			quantity: 1,
-			selectedColor: product.colors?.[0] || 'Default'
-		});
-		showToast(`"${product.name}" додано в кошик!`);
-	};
-
-	// Wishlist
+	// Wishlist Logic
 	const isInWishlist = (id: number) => wishlistItems.some(item => item.id === id);
 
 	const handleToggleWishlist = (product: any) => {
@@ -198,7 +194,20 @@ const CatalogPage = () => {
 		}
 	};
 
-	// Слайдер ціни
+	// Cart Logic
+	const handleAddToCart = (product: any) => {
+		addToCart({
+			id: product.id,
+			name: product.name,
+			price: product.price,
+			image: product.image,
+			quantity: 1,
+			selectedColor: product.colors?.[0] || 'Default'
+		});
+		showToast(`"${product.name}" додано в кошик!`);
+	};
+
+	// Price Slider Handlers
 	const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const value = Math.min(Number(e.target.value), priceRange.max - 500);
 		setPriceRange({ ...priceRange, min: value });
@@ -212,7 +221,7 @@ const CatalogPage = () => {
 	const minPercent = (priceRange.min / 15000) * 100;
 	const maxPercent = (priceRange.max / 15000) * 100;
 
-	// --- ФІЛЬТРАЦІЯ ТА СОРТУВАННЯ ---
+	// --- ФІЛЬТРАЦІЯ ---
 	const filteredProducts = useMemo(() => {
 		let result = PRODUCTS;
 
@@ -269,13 +278,14 @@ const CatalogPage = () => {
 							</div>
 						</div>
 
+						{/* Local Search Input */}
 						<div className="relative w-full md:w-96 group">
 							<input
 								type="text"
 								placeholder="Пошук девайсів..."
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
-								className="w-full pl-11 pr-4 py-2.5 bg-slate-100 border-transparent border focus:bg-white focus:border-sky-500 rounded-xl transition-all outline-none text-sm font-medium group-hover:bg-white group-hover:border-slate-300"
+								className="w-full pl-11 pr-4 py-2.5 bg-slate-100 border-transparent border focus:bg-white focus:border-sky-500 rounded-xl transition-all outline-none text-sm font-medium group-hover:bg-white group-hover:border-slate-300 text-slate-900"
 							/>
 							<Search className="absolute left-3.5 top-3 text-slate-400 group-hover:text-sky-500 transition-colors" size={18} />
 						</div>
@@ -285,10 +295,10 @@ const CatalogPage = () => {
 
 			<div className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-				{/* --- FILTERS BAR (TOP) --- */}
+				{/* --- FILTERS BAR --- */}
 				<div className="flex flex-col gap-6 mb-8">
 
-					{/* Row 1: Categories (Pills) */}
+					{/* Categories */}
 					<div className="flex items-center overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
 						<div className="flex gap-2">
 							{CATEGORIES.map(cat => {
@@ -309,10 +319,10 @@ const CatalogPage = () => {
 						</div>
 					</div>
 
-					{/* Row 2: Price, Active Filters & Settings */}
+					{/* Tools Row */}
 					<div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
 
-						{/* Left: Price Range */}
+						{/* Price Range */}
 						<div className="flex flex-col sm:flex-row sm:items-center gap-6">
 							<div className="flex items-center gap-3">
 								<span className="font-bold text-slate-900 flex items-center gap-2">
@@ -325,7 +335,7 @@ const CatalogPage = () => {
 											type="number"
 											value={priceRange.min}
 											onChange={(e) => setPriceRange({ ...priceRange, min: Math.min(Number(e.target.value), priceRange.max - 100) })}
-											className="w-20 pl-6 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-sky-500 outline-none"
+											className="w-20 pl-6 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-sky-500 outline-none text-slate-900"
 										/>
 									</div>
 									<span className="text-slate-300 font-bold">-</span>
@@ -335,13 +345,12 @@ const CatalogPage = () => {
 											type="number"
 											value={priceRange.max}
 											onChange={(e) => setPriceRange({ ...priceRange, max: Math.max(Number(e.target.value), priceRange.min + 100) })}
-											className="w-20 pl-6 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-sky-500 outline-none"
+											className="w-20 pl-6 pr-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold focus:ring-2 focus:ring-sky-500 outline-none text-slate-900"
 										/>
 									</div>
 								</div>
 							</div>
 
-							{/* Compact Slider */}
 							<div className="relative w-full sm:w-48 h-1.5 bg-slate-200 rounded-full my-2 sm:my-0">
 								<div
 									className="absolute h-full bg-sky-500 rounded-full z-10"
@@ -356,7 +365,7 @@ const CatalogPage = () => {
 							</div>
 						</div>
 
-						{/* Middle: Active Filters */}
+						{/* Active Filters */}
 						{isFiltersActive && (
 							<div className="flex flex-wrap items-center gap-2 pl-0 xl:pl-6 xl:border-l xl:border-slate-200">
 								{selectedCategories.map(cat => (
@@ -375,7 +384,7 @@ const CatalogPage = () => {
 									</button>
 								)}
 								{searchQuery && (
-									<button onClick={() => setSearchQuery('')} className="bg-sky-50 text-sky-700 border border-sky-100 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors">
+									<button onClick={() => { setSearchQuery(''); navigate('/catalog'); }} className="bg-sky-50 text-sky-700 border border-sky-100 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-colors">
 										"{searchQuery}" <X size={12} />
 									</button>
 								)}
@@ -385,14 +394,13 @@ const CatalogPage = () => {
 							</div>
 						)}
 
-						{/* Right: Sort & Grid */}
+						{/* Sort & Grid */}
 						<div className="flex items-center gap-4 ml-auto pt-4 xl:pt-0 border-t xl:border-t-0 border-slate-100 w-full xl:w-auto justify-end">
 							<span className="text-slate-400 text-sm font-medium whitespace-nowrap hidden sm:inline">
 								{filteredProducts.length} товарів
 							</span>
 
 							<div className="flex items-center gap-2">
-								{/* GRID SWITCHER */}
 								<div className="hidden lg:flex items-center bg-slate-100 rounded-lg p-1">
 									<button onClick={() => setGridCols(2)} className={`p-1.5 rounded-md transition-all ${gridCols === 2 ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`} title="2 колонки"><Grid2X2 size={18} /></button>
 									<button onClick={() => setGridCols(3)} className={`p-1.5 rounded-md transition-all ${gridCols === 3 ? 'bg-white text-sky-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`} title="3 колонки"><Grid3X3 size={18} /></button>
@@ -428,7 +436,6 @@ const CatalogPage = () => {
 									{product.isSale && <span className="bg-rose-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm shadow-rose-200">Sale</span>}
 								</div>
 
-								{/* Wishlist Button */}
 								<button
 									onClick={() => handleToggleWishlist(product)}
 									className={`absolute top-4 right-4 z-10 p-2 rounded-full transition-all duration-300 shadow-sm ${isInWishlist(product.id)
@@ -449,7 +456,6 @@ const CatalogPage = () => {
 										<h3 className={`font-bold text-slate-900 mb-2 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2 ${gridCols >= 4 ? 'text-sm' : 'text-lg'}`}>{product.name}</h3>
 									</Link>
 
-									{/* Colors */}
 									{product.colors && (
 										<div className="flex gap-1.5 mb-3">
 											{product.colors.map((color, idx) => (

@@ -1,13 +1,13 @@
-import { Link } from 'react-router-dom';
-import { ShoppingCart, User, Search, Menu } from 'lucide-react';
+import React, { useState } from 'react'; // Додай useState
+import { Link, useNavigate } from 'react-router-dom'; // Додай useNavigate
+import { ShoppingCart, User, Search, Menu, Heart } from 'lucide-react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { cartTotalItemsAtom } from '../../store/cartAtoms';
 import { isMobileMenuOpenAtom } from '../../store/uiAtoms';
-import { isAuthenticatedAtom } from '../../store/authAtoms'; // Імпорт атома авторизації
+import { isAuthenticatedAtom } from '../../store/authAtoms';
+import { wishlistAtom } from '../../store/wishlistAtoms';
 import MobileMenu from './MobileMenu';
 import logoImg from '@/assets/logo/logo.png';
-import { Heart } from 'lucide-react';
-import { wishlistAtom } from '../../store/wishlistAtoms';
 
 const NAV_ITEMS = [
 	{ label: 'Каталог', path: '/catalog' },
@@ -18,10 +18,22 @@ const NAV_ITEMS = [
 ];
 
 const Header = () => {
+	const navigate = useNavigate(); // Хук навігації
+	const [searchTerm, setSearchTerm] = useState(''); // Локальний стан поля пошуку
+
 	const totalItems = useAtomValue(cartTotalItemsAtom);
+	const wishlistItems = useAtomValue(wishlistAtom);
 	const setIsMobileMenuOpen = useSetAtom(isMobileMenuOpenAtom);
 	const isAuthenticated = useAtomValue(isAuthenticatedAtom);
-	const wishlistItems = useAtomValue(wishlistAtom);
+
+	// Функція пошуку
+	const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === 'Enter' && searchTerm.trim()) {
+			// Переходимо на каталог з параметром ?q=...
+			navigate(`/catalog?q=${encodeURIComponent(searchTerm)}`);
+			setSearchTerm(''); // Очищаємо поле (опціонально)
+		}
+	};
 
 	return (
 		<>
@@ -50,16 +62,21 @@ const Header = () => {
 
 					<div className="flex items-center gap-4">
 
+						{/* ПОШУК (З логікою) */}
 						<div className="hidden lg:flex items-center bg-gray-100 rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-sky-500 transition-all">
 							<Search className="w-4 h-4 text-gray-400" />
 							<input
 								type="text"
 								placeholder="Пошук..."
+								value={searchTerm}
+								onChange={(e) => setSearchTerm(e.target.value)}
+								onKeyDown={handleSearch} // Слухаємо Enter
 								className="bg-transparent border-none outline-none text-sm ml-2 w-48 text-slate-900 placeholder:text-gray-400"
 							/>
 						</div>
 
 						<div className="flex items-center gap-2">
+							{/* Wishlist Icon */}
 							<Link to="/wishlist" className="p-2 hover:bg-gray-100 rounded-full transition-colors relative hidden sm:block" aria-label="Бажане">
 								<Heart className="w-6 h-6 text-slate-700 hover:text-rose-500 transition-colors" />
 								{wishlistItems.length > 0 && (
@@ -78,12 +95,11 @@ const Header = () => {
 								)}
 							</Link>
 
-							{/* Розумне посилання на профіль */}
 							<Link
 								to={isAuthenticated ? "/profile" : "/login"}
 								className={`p-2 rounded-full transition-colors ${isAuthenticated
-									? 'bg-sky-100 text-sky-600 hover:bg-sky-200'
-									: 'hover:bg-gray-100 text-slate-700 hover:text-sky-500'
+										? 'bg-sky-100 text-sky-600 hover:bg-sky-200'
+										: 'hover:bg-gray-100 text-slate-700 hover:text-sky-500'
 									}`}
 								aria-label={isAuthenticated ? "Мій профіль" : "Увійти"}
 							>
