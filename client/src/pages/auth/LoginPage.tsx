@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle, LogIn } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, LogIn } from 'lucide-react';
+import { useSetAtom } from 'jotai';
+import { isAuthenticatedAtom, userAtom } from '../../store/authAtoms';
 
 const LoginPage = () => {
 	const navigate = useNavigate();
+
+	// Jotai setters
+	const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
+	const setUser = useSetAtom(userAtom);
 
 	// --- СТАНИ ---
 	const [formData, setFormData] = useState({
@@ -35,12 +41,19 @@ const LoginPage = () => {
 
 		// 2. Імітація запиту на сервер
 		setTimeout(() => {
-			// Тут буде запит до API
 			console.log('Logging in:', formData);
 
-			// Якщо успішно:
+			// 3. Зберігаємо дані в глобальний стан (Jotai)
+			setIsAuthenticated(true);
+			setUser({
+				name: formData.email.split('@')[0], // Тимчасово беремо ім'я з пошти
+				email: formData.email
+			});
+
 			setIsLoading(false);
-			navigate('/'); // Перенаправляємо на головну або в профіль
+
+			// 4. Перенаправляємо в профіль
+			navigate('/profile');
 		}, 1500);
 	};
 
@@ -50,7 +63,6 @@ const LoginPage = () => {
 			{/* --- LEFT SIDE: WELCOME BACK MESSAGE --- */}
 			<div className="hidden lg:flex w-1/2 bg-slate-900 relative overflow-hidden items-center justify-center">
 				<div className="absolute top-0 left-0 w-full h-full opacity-20">
-					{/* Трохи інший колір градієнта для Логіну (Indigo) */}
 					<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-500 rounded-full blur-[120px]"></div>
 				</div>
 
@@ -70,7 +82,6 @@ const LoginPage = () => {
 						Ми зберегли твій кошик та список бажань. Увійди, щоб продовжити покупки там, де ти зупинився.
 					</p>
 
-					{/* Quick Stats or Visual Element */}
 					<div className="flex gap-8 border-t border-slate-800 pt-8">
 						<div>
 							<p className="text-3xl font-bold text-white">10k+</p>
@@ -107,7 +118,6 @@ const LoginPage = () => {
 
 					<form onSubmit={handleSubmit} className="space-y-5">
 
-						{/* Email Input */}
 						<div className="space-y-1.5">
 							<label className="text-sm font-bold text-slate-700 ml-1">Email</label>
 							<div className="relative group">
@@ -123,7 +133,6 @@ const LoginPage = () => {
 							</div>
 						</div>
 
-						{/* Password Input */}
 						<div className="space-y-1.5">
 							<div className="flex justify-between items-center ml-1">
 								<label className="text-sm font-bold text-slate-700">Пароль</label>
@@ -149,7 +158,6 @@ const LoginPage = () => {
 							</div>
 						</div>
 
-						{/* Remember Me */}
 						<div className="flex items-center gap-3 pt-2">
 							<div className="flex items-center h-5">
 								<input
@@ -179,7 +187,6 @@ const LoginPage = () => {
 						</button>
 					</form>
 
-					{/* Social Auth Divider */}
 					<div className="relative">
 						<div className="absolute inset-0 flex items-center">
 							<div className="w-full border-t border-slate-200"></div>
@@ -189,7 +196,6 @@ const LoginPage = () => {
 						</div>
 					</div>
 
-					{/* Social Buttons */}
 					<div className="grid grid-cols-2 gap-4">
 						<button className="flex items-center justify-center gap-2 py-3 bg-white border border-slate-200 rounded-xl hover:border-slate-400 hover:bg-slate-50 transition-all text-slate-700 font-bold text-sm">
 							<img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-5 h-5" alt="Google" />

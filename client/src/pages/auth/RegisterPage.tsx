@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle, Phone } from 'lucide-react'; // Додано Phone
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle, Phone } from 'lucide-react';
+import { useSetAtom } from 'jotai'; // 1. Імпорт Jotai
+import { isAuthenticatedAtom, userAtom } from '../../store/authAtoms'; // 2. Імпорт атомів
 
 const RegisterPage = () => {
 	const navigate = useNavigate();
+
+	// Отримуємо функції для запису в атоми
+	const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
+	const setUser = useSetAtom(userAtom);
 
 	// --- СТАНИ ---
 	const [formData, setFormData] = useState({
 		name: '',
 		email: '',
-		phone: '', // Додано поле телефону
+		phone: '',
 		password: '',
 		confirmPassword: ''
 	});
@@ -49,15 +55,23 @@ const RegisterPage = () => {
 			return;
 		}
 
-		// 2. Імітація запиту
+		// 2. Імітація запиту реєстрації
 		setTimeout(() => {
 			console.log('User Registered:', formData);
 			setIsLoading(false);
-			setSuccess(true);
+			setSuccess(true); // Показуємо повідомлення про успіх
 
+			// 3. Автоматичний вхід (Auto-login)
+			setIsAuthenticated(true);
+			setUser({
+				name: formData.name, // Беремо введене ім'я
+				email: formData.email
+			});
+
+			// 4. Перенаправлення через 1.5 секунди (щоб юзер побачив галочку успіху)
 			setTimeout(() => {
-				navigate('/login');
-			}, 2000);
+				navigate('/profile'); // Ведемо одразу в кабінет
+			}, 1500);
 		}, 1500);
 	};
 
@@ -122,7 +136,7 @@ const RegisterPage = () => {
 					)}
 					{success && (
 						<div className="bg-green-50 text-green-600 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 border border-green-100">
-							<CheckCircle size={18} /> Акаунт успішно створено! Перенаправлення...
+							<CheckCircle size={18} /> Акаунт успішно створено! Вхід...
 						</div>
 					)}
 
@@ -160,7 +174,7 @@ const RegisterPage = () => {
 							</div>
 						</div>
 
-						{/* Phone Input (NEW) */}
+						{/* Phone Input */}
 						<div className="space-y-1.5">
 							<label className="text-sm font-bold text-slate-700 ml-1">Телефон</label>
 							<div className="relative group">
