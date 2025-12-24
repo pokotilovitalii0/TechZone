@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Star, ShoppingCart, Heart, ArrowLeft, Truck, ShieldCheck, RefreshCw, Minus, Plus, CheckCircle, Share2, ChevronRight, User } from 'lucide-react';
 
-import { useSetAtom } from 'jotai';
+// --- JOTAI IMPORTS ---
+import { useSetAtom, useAtomValue } from 'jotai';
 import { addToCartAtom } from '../../store/cartAtoms';
+import { wishlistAtom, toggleWishlistAtom } from '../../store/wishlistAtoms';
 
 // --- ПОЧАТКОВІ ДАНІ ---
 const INITIAL_PRODUCT = {
@@ -47,6 +49,11 @@ const ProductPage = () => {
 	const { id } = useParams();
 	const navigate = useNavigate();
 
+	// --- ATOMS ---
+	const addToCart = useSetAtom(addToCartAtom);
+	const wishlistItems = useAtomValue(wishlistAtom);
+	const toggleWishlist = useSetAtom(toggleWishlistAtom);
+
 	// --- СТАНИ ---
 	const [selectedImage, setSelectedImage] = useState(0);
 	const [selectedColor, setSelectedColor] = useState(0);
@@ -54,18 +61,22 @@ const ProductPage = () => {
 	const [activeTab, setActiveTab] = useState<'desc' | 'specs' | 'reviews'>('desc');
 	const [toast, setToast] = useState<string | null>(null);
 
-	// Стан для відгуків (щоб можна було додавати нові)
+	// Стан для відгуків
 	const [reviews, setReviews] = useState(INITIAL_PRODUCT.reviews);
 
 	// Стан для форми нового відгуку
 	const [newReviewUser, setNewReviewUser] = useState('');
 	const [newReviewText, setNewReviewText] = useState('');
 	const [newReviewRating, setNewReviewRating] = useState(0);
-	const [hoverRating, setHoverRating] = useState(0); // Для ефекту наведення на зірочки
+	const [hoverRating, setHoverRating] = useState(0);
 
-	const product = INITIAL_PRODUCT;
+	const product = INITIAL_PRODUCT; // Тут в реальності був би запит до API по ID
 
 	// --- ЛОГІКА ---
+
+	// Перевірка наявності в Wishlist
+	const isInWishlist = (productId: number) => wishlistItems.some(item => item.id === productId);
+
 	const showToast = (msg: string) => {
 		setToast(msg);
 		setTimeout(() => setToast(null), 3000);
@@ -74,6 +85,36 @@ const ProductPage = () => {
 	const handleQuantityChange = (type: 'inc' | 'dec') => {
 		if (type === 'dec' && quantity > 1) setQuantity(prev => prev - 1);
 		if (type === 'inc' && quantity < 10) setQuantity(prev => prev + 1);
+	};
+
+	const handleAddToCart = () => {
+		addToCart({
+			id: product.id,
+			name: product.name,
+			price: product.price,
+			image: product.images[0],
+			quantity: quantity,
+			selectedColor: product.colors[selectedColor].name
+		});
+		showToast(`Додано в кошик: ${quantity} шт.`);
+	};
+
+	const handleToggleWishlist = () => {
+		toggleWishlist({
+			id: product.id,
+			name: product.name,
+			price: product.price,
+			oldPrice: product.oldPrice,
+			image: product.images[0],
+			inStock: product.inStock,
+			category: product.category
+		});
+
+		if (!isInWishlist(product.id)) {
+			showToast('Додано до списку бажань');
+		} else {
+			showToast('Видалено зі списку бажань');
+		}
 	};
 
 	const handleSubmitReview = (e: React.FormEvent) => {
@@ -100,20 +141,6 @@ const ProductPage = () => {
 		showToast('Дякуємо за ваш відгук!');
 	};
 
-	const addToCart = useSetAtom(addToCartAtom);
-
-	const handleAddToCart = () => {
-		addToCart({
-			id: product.id,
-			name: product.name,
-			price: product.price,
-			image: product.images[0],
-			quantity: quantity,
-			selectedColor: product.colors[selectedColor].name
-		});
-		showToast(`Додано в кошик: ${quantity} шт.`);
-	};
-
 	if (!product) return <div>Товар не знайдено</div>;
 
 	return (
@@ -129,7 +156,7 @@ const ProductPage = () => {
 				</div>
 			)}
 
-			{/* --- HEADER --- */}
+			{/* --- HEADER BREADCRUMBS --- */}
 			<div className="bg-white border-b border-slate-200">
 				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 					<button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-500 hover:text-sky-600 transition-colors text-sm font-medium mb-4">
@@ -149,12 +176,23 @@ const ProductPage = () => {
 
 				{/* --- PRODUCT GRID --- */}
 				<div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+
 					{/* LEFT: Images */}
 					<div className="space-y-4">
 						<div className="bg-white rounded-3xl border border-slate-200 p-8 h-[400px] sm:h-[500px] flex items-center justify-center relative group">
-							<button className="absolute top-4 right-4 p-2.5 rounded-full bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors">
-								<Heart size={24} />
+
+							{/* WISHLIST BUTTON */}
+							<button
+								onClick={handleToggleWishlist}
+								className={`absolute top-4 right-4 p-2.5 rounded-full transition-all duration-300 shadow-sm ${isInWishlist(product.id)
+										? 'bg-rose-50 text-rose-500 scale-110'
+										: 'bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50'
+									}`}
+								title={isInWishlist(product.id) ? "Видалити з бажаного" : "Додати в бажане"}
+							>
+								<Heart size={24} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
 							</button>
+
 							<img src={product.images[selectedImage]} alt={product.name} className="w-full h-full object-contain mix-blend-multiply transition-all duration-500" />
 						</div>
 						<div className="grid grid-cols-4 gap-4">

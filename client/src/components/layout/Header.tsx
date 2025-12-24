@@ -6,6 +6,8 @@ import { isMobileMenuOpenAtom } from '../../store/uiAtoms';
 import { isAuthenticatedAtom } from '../../store/authAtoms'; // Імпорт атома авторизації
 import MobileMenu from './MobileMenu';
 import logoImg from '@/assets/logo/logo.png';
+import { Heart } from 'lucide-react';
+import { wishlistAtom } from '../../store/wishlistAtoms';
 
 const NAV_ITEMS = [
 	{ label: 'Каталог', path: '/catalog' },
@@ -18,7 +20,8 @@ const NAV_ITEMS = [
 const Header = () => {
 	const totalItems = useAtomValue(cartTotalItemsAtom);
 	const setIsMobileMenuOpen = useSetAtom(isMobileMenuOpenAtom);
-	const isAuthenticated = useAtomValue(isAuthenticatedAtom); // Читаємо стан
+	const isAuthenticated = useAtomValue(isAuthenticatedAtom);
+	const wishlistItems = useAtomValue(wishlistAtom);
 
 	return (
 		<>
@@ -57,6 +60,15 @@ const Header = () => {
 						</div>
 
 						<div className="flex items-center gap-2">
+							<Link to="/wishlist" className="p-2 hover:bg-gray-100 rounded-full transition-colors relative hidden sm:block" aria-label="Бажане">
+								<Heart className="w-6 h-6 text-slate-700 hover:text-rose-500 transition-colors" />
+								{wishlistItems.length > 0 && (
+									<span className="absolute top-0 right-0 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full animate-in zoom-in">
+										{wishlistItems.length}
+									</span>
+								)}
+							</Link>
+
 							<Link to="/cart" className="p-2 hover:bg-gray-100 rounded-full transition-colors relative" aria-label="Кошик">
 								<ShoppingCart className="w-6 h-6 text-slate-700 hover:text-sky-500 transition-colors" />
 								{totalItems > 0 && (
@@ -70,8 +82,8 @@ const Header = () => {
 							<Link
 								to={isAuthenticated ? "/profile" : "/login"}
 								className={`p-2 rounded-full transition-colors ${isAuthenticated
-										? 'bg-sky-100 text-sky-600 hover:bg-sky-200'
-										: 'hover:bg-gray-100 text-slate-700 hover:text-sky-500'
+									? 'bg-sky-100 text-sky-600 hover:bg-sky-200'
+									: 'hover:bg-gray-100 text-slate-700 hover:text-sky-500'
 									}`}
 								aria-label={isAuthenticated ? "Мій профіль" : "Увійти"}
 							>

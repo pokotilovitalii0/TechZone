@@ -9,6 +9,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import LoginPage from './pages/auth/LoginPage';
 import CheckoutPage from './pages/checkout/CheckoutPage';
 import ProfilePage from './pages/profile/ProfilePage';
+import WishlistPage from './pages/wishlist/WishlistPage';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route index element={<HomePage />} />
         <Route path="catalog" element={<CatalogPage />} />
         <Route path="/catalog/:categorySlug" element={<CatalogPage />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="cart" element={<CartPage />} />
         <Route path="/product/:id" element={<ProductPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
