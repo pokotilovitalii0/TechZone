@@ -1,6 +1,6 @@
-import React, { useState } from 'react'; // Додай useState
-import { Link, useNavigate } from 'react-router-dom'; // Додай useNavigate
-import { ShoppingCart, User, Search, Menu, Heart } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ShoppingCart, User, Search, Menu, Heart, X, ChevronRight, Loader2 } from 'lucide-react';
 import { useAtomValue, useSetAtom } from 'jotai';
 import { cartTotalItemsAtom } from '../../store/cartAtoms';
 import { isMobileMenuOpenAtom } from '../../store/uiAtoms';
@@ -8,6 +8,17 @@ import { isAuthenticatedAtom } from '../../store/authAtoms';
 import { wishlistAtom } from '../../store/wishlistAtoms';
 import MobileMenu from './MobileMenu';
 import logoImg from '@/assets/logo/logo.png';
+
+// --- SEARCH DATABASE (МОК ДЛЯ ПОШУКУ) ---
+// В реальному проекті це береться з API або глобального стору продуктів
+const SEARCH_DB = [
+	{ id: 1, name: 'Logitech G Pro X Superlight', category: 'Мишки', image: 'https://content1.rozetka.com.ua/goods/images/big/309983933.jpg', price: 5999 },
+	{ id: 2, name: 'Keychron K2 Pro', category: 'Клавіатури', image: 'https://content2.rozetka.com.ua/goods/images/big/323337966.jpg', price: 4500 },
+	{ id: 3, name: 'HyperX Cloud Alpha', category: 'Навушники', image: 'https://content2.rozetka.com.ua/goods/images/big/11547900.jpg', price: 7200 },
+	{ id: 4, name: 'Razer DeathAdder V3', category: 'Мишки', image: 'https://content1.rozetka.com.ua/goods/images/big/285623086.jpg', price: 6999 },
+	{ id: 5, name: 'Asus ROG Azoth', category: 'Клавіатури', image: 'https://content1.rozetka.com.ua/goods/images/big/317377543.jpg', price: 10999 },
+	{ id: 6, name: 'SteelSeries QcK Heavy', category: 'Аксесуари', image: 'https://content2.rozetka.com.ua/goods/images/big/10747043.jpg', price: 1499 },
+];
 
 const NAV_ITEMS = [
 	{ label: 'Каталог', path: '/catalog' },
@@ -18,21 +29,58 @@ const NAV_ITEMS = [
 ];
 
 const Header = () => {
-	const navigate = useNavigate(); // Хук навігації
-	const [searchTerm, setSearchTerm] = useState(''); // Локальний стан поля пошуку
+	const navigate = useNavigate();
 
+	// --- STATE ---
+	const [searchTerm, setSearchTerm] = useState('');
+	const [suggestions, setSuggestions] = useState<typeof SEARCH_DB>([]);
+	const [isSearchFocused, setIsSearchFocused] = useState(false);
+	const searchRef = useRef<HTMLDivElement>(null); // Для кліку поза межами
+
+	// --- ATOMS ---
 	const totalItems = useAtomValue(cartTotalItemsAtom);
 	const wishlistItems = useAtomValue(wishlistAtom);
 	const setIsMobileMenuOpen = useSetAtom(isMobileMenuOpenAtom);
 	const isAuthenticated = useAtomValue(isAuthenticatedAtom);
 
-	// Функція пошуку
-	const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-		if (e.key === 'Enter' && searchTerm.trim()) {
-			// Переходимо на каталог з параметром ?q=...
-			navigate(`/catalog?q=${encodeURIComponent(searchTerm)}`);
-			setSearchTerm(''); // Очищаємо поле (опціонально)
+	// --- LOGIC ---
+
+	// 1. Живий пошук
+	useEffect(() => {
+		if (searchTerm.trim().length > 0) {
+			const results = SEARCH_DB.filter(product =>
+				product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+				product.category.toLowerCase().includes(searchTerm.toLowerCase())
+			).slice(0, 5); // Показуємо максимум 5 підказок
+			setSuggestions(results);
+		} else {
+			setSuggestions([]);
 		}
+	}, [searchTerm]);
+
+	// 2. Закриття при кліку поза межами
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+				setIsSearchFocused(false);
+			}
+		};
+		document.addEventListener('mousedown', handleClickOutside);
+		return () => document.removeEventListener('mousedown', handleClickOutside);
+	}, []);
+
+	const handleSearchSubmit = (e?: React.KeyboardEvent) => {
+		if ((!e || e.key === 'Enter') && searchTerm.trim()) {
+			navigate(`/catalog?q=${encodeURIComponent(searchTerm)}`);
+			setIsSearchFocused(false);
+			setSuggestions([]);
+		}
+	};
+
+	const handleSuggestionClick = (id: number) => {
+		navigate(`/product/${id}`);
+		setSearchTerm('');
+		setIsSearchFocused(false);
 	};
 
 	return (
@@ -40,6 +88,7 @@ const Header = () => {
 			<header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/80 backdrop-blur-md">
 				<div className="container mx-auto px-4 h-20 flex items-center justify-between">
 
+					{/* LOGO */}
 					<Link to="/" className="flex items-center gap-2 group">
 						<img src={logoImg} alt="TechZone Logo" className="h-10 w-auto" />
 						<span className="text-2xl font-bold tracking-tight text-slate-900">
@@ -47,6 +96,7 @@ const Header = () => {
 						</span>
 					</Link>
 
+					{/* NAV */}
 					<nav className="hidden md:flex gap-8 font-medium text-slate-600">
 						{NAV_ITEMS.map((item) => (
 							<Link
@@ -60,23 +110,74 @@ const Header = () => {
 						))}
 					</nav>
 
+					{/* ACTIONS */}
 					<div className="flex items-center gap-4">
 
-						{/* ПОШУК (З логікою) */}
-						<div className="hidden lg:flex items-center bg-gray-100 rounded-full px-4 py-2 focus-within:ring-2 focus-within:ring-sky-500 transition-all">
-							<Search className="w-4 h-4 text-gray-400" />
-							<input
-								type="text"
-								placeholder="Пошук..."
-								value={searchTerm}
-								onChange={(e) => setSearchTerm(e.target.value)}
-								onKeyDown={handleSearch} // Слухаємо Enter
-								className="bg-transparent border-none outline-none text-sm ml-2 w-48 text-slate-900 placeholder:text-gray-400"
-							/>
+						{/* --- SEARCH BAR WITH DROPDOWN --- */}
+						<div ref={searchRef} className="hidden lg:block relative z-50">
+							<div className={`flex items-center bg-gray-100 rounded-2xl px-4 py-2.5 transition-all duration-300 w-64 focus-within:w-80 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:bg-white focus-within:shadow-lg ${isSearchFocused ? 'bg-white shadow-lg w-80' : ''}`}>
+								<Search className={`w-4 h-4 transition-colors ${isSearchFocused ? 'text-sky-500' : 'text-gray-400'}`} />
+								<input
+									type="text"
+									placeholder="Пошук..."
+									value={searchTerm}
+									onFocus={() => setIsSearchFocused(true)}
+									onChange={(e) => setSearchTerm(e.target.value)}
+									onKeyDown={handleSearchSubmit}
+									className="bg-transparent border-none outline-none text-sm ml-3 w-full text-slate-900 placeholder:text-gray-400"
+								/>
+								{searchTerm && (
+									<button onClick={() => setSearchTerm('')} className="text-slate-400 hover:text-slate-600">
+										<X size={14} />
+									</button>
+								)}
+							</div>
+
+							{/* --- SUGGESTIONS DROPDOWN --- */}
+							{isSearchFocused && searchTerm.length > 0 && (
+								<div className="absolute top-full left-0 w-full mt-2 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+									{suggestions.length > 0 ? (
+										<>
+											<div className="py-2">
+												<div className="px-4 py-2 text-xs font-bold text-slate-400 uppercase tracking-wider">Товари</div>
+												{suggestions.map((item) => (
+													<button
+														key={item.id}
+														onClick={() => handleSuggestionClick(item.id)}
+														className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors group"
+													>
+														<div className="w-10 h-10 rounded-lg bg-white border border-slate-100 p-1 flex items-center justify-center shrink-0">
+															<img src={item.image} alt={item.name} className="w-full h-full object-contain mix-blend-multiply" />
+														</div>
+														<div className="flex-1 min-w-0">
+															<p className="text-sm font-bold text-slate-900 truncate group-hover:text-sky-600 transition-colors">{item.name}</p>
+															<p className="text-xs text-slate-500">{item.category}</p>
+														</div>
+														<span className="text-xs font-bold text-slate-900">{item.price} ₴</span>
+													</button>
+												))}
+											</div>
+											<div className="border-t border-slate-100 p-2 bg-slate-50">
+												<button
+													onClick={() => handleSearchSubmit()}
+													className="w-full flex items-center justify-center gap-2 text-sm font-bold text-sky-600 hover:text-sky-700 py-2 rounded-xl hover:bg-sky-50 transition-colors"
+												>
+													Всі результати для "{searchTerm}" <ChevronRight size={14} />
+												</button>
+											</div>
+										</>
+									) : (
+										<div className="p-6 text-center text-slate-500">
+											<Search className="w-8 h-8 mx-auto mb-2 text-slate-300 opacity-50" />
+											<p className="text-sm">Нічого не знайдено</p>
+										</div>
+									)}
+								</div>
+							)}
 						</div>
 
 						<div className="flex items-center gap-2">
-							{/* Wishlist Icon */}
+							{/* Wishlist */}
 							<Link to="/wishlist" className="p-2 hover:bg-gray-100 rounded-full transition-colors relative hidden sm:block" aria-label="Бажане">
 								<Heart className="w-6 h-6 text-slate-700 hover:text-rose-500 transition-colors" />
 								{wishlistItems.length > 0 && (
@@ -86,6 +187,7 @@ const Header = () => {
 								)}
 							</Link>
 
+							{/* Cart */}
 							<Link to="/cart" className="p-2 hover:bg-gray-100 rounded-full transition-colors relative" aria-label="Кошик">
 								<ShoppingCart className="w-6 h-6 text-slate-700 hover:text-sky-500 transition-colors" />
 								{totalItems > 0 && (
@@ -95,6 +197,7 @@ const Header = () => {
 								)}
 							</Link>
 
+							{/* Profile */}
 							<Link
 								to={isAuthenticated ? "/profile" : "/login"}
 								className={`p-2 rounded-full transition-colors ${isAuthenticated
