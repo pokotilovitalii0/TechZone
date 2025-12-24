@@ -11,6 +11,11 @@ import CheckoutPage from './pages/checkout/CheckoutPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import WishlistPage from './pages/wishlist/WishlistPage';
 import NotFoundPage from './pages/NotFoundPage';
+import AboutPage from './pages/info/AboutPage';
+import ContactsPage from './pages/info/ContactsPage';
+import DeliveryPage from './pages/info/DeliveryPage';
+import WarrantyPage from './pages/info/WarrantyPage';
+import ReturnsPage from './pages/info/ReturnsPage';
 
 function App() {
   return (
@@ -26,6 +31,11 @@ function App() {
         <Route path="/product/:id" element={<ProductPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contacts" element={<ContactsPage />} />
+        <Route path="/delivery" element={<DeliveryPage />} />
+        <Route path="/warranty" element={<WarrantyPage />} />
+        <Route path="/returns" element={<ReturnsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route path="/register" element={<RegisterPage />} />
