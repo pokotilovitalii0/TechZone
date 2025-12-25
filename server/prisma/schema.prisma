@@ -1,0 +1,67 @@
+// server/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  role      String   @default("user") // "admin" або "user"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique // для URL, наприклад "logitech-g-pro"
+  description String
+  price       Int
+  oldPrice    Int?
+  image       String
+  images      String[] // Масив посилань на фото
+  category    String
+  inStock     Boolean  @default(true)
+  rating      Float    @default(0)
+  reviews     Int      @default(0)
+  colors      Json?    // Зберігаємо кольори як JSON: [{name: "Black", hex: "#000"}]
+  specs       Json?    // Характеристики як JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  createdAt   DateTime    @default(now())
+  status      String      @default("pending") // pending, paid, shipped
+  total       Int
+  user        User?       @relation(fields: [userId], references: [id])
+  userId      Int?
+  items       OrderItem[]
+  
+  // Дані доставки (якщо юзер не зареєстрований)
+  guestName   String?
+  guestPhone  String?
+  guestEmail  String?
+  address     String?
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  quantity  Int
+  price     Int     // Ціна на момент покупки
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+}
