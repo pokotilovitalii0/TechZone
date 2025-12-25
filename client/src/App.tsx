@@ -3,8 +3,7 @@ import Layout from './components/layout/Layout';
 import HomePage from './pages/home/HomePage';
 import CatalogPage from './pages/catalog/CatalogPage';
 import CartPage from './pages/cart/CartPage';
-import AuthPage from './pages/auth/AuthPage';
-import ProductPage from './pages/catalog/ProductPage';
+import ProductPage from './pages/catalog/ProductPage'; // Перевірте шлях імпорту, у вас було '../pages/catalog/ProductPage'
 import RegisterPage from './pages/auth/RegisterPage';
 import LoginPage from './pages/auth/LoginPage';
 import CheckoutPage from './pages/checkout/CheckoutPage';
@@ -28,7 +27,11 @@ function App() {
         <Route path="/catalog/:categorySlug" element={<CatalogPage />} />
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="cart" element={<CartPage />} />
-        <Route path="/product/:id" element={<ProductPage />} />
+
+        {/* --- ОСЬ ТУТ БУЛА ПОМИЛКА --- */}
+        {/* Було :id, стало :slug, щоб збігалося з useParams() у ProductPage */}
+        <Route path="/product/:slug" element={<ProductPage />} />
+
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/about" element={<AboutPage />} />
