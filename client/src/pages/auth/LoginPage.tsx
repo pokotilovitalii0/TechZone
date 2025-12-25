@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, LogIn } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, LogIn, Loader2 } from 'lucide-react';
 import { useSetAtom } from 'jotai';
-import { isAuthenticatedAtom, userAtom } from '../../store/authAtoms';
+import { loginAtom } from '../../store/authAtoms'; // Використовуємо loginAtom для запису
 
 const LoginPage = () => {
 	const navigate = useNavigate();
 
-	// Jotai setters
-	const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
-	const setUser = useSetAtom(userAtom);
+	// Використовуємо атом дії для входу
+	const login = useSetAtom(loginAtom);
 
 	// --- СТАНИ ---
 	const [formData, setFormData] = useState({
@@ -39,22 +38,32 @@ const LoginPage = () => {
 			return;
 		}
 
-		// 2. Імітація запиту на сервер
-		setTimeout(() => {
-			console.log('Logging in:', formData);
-
-			// 3. Зберігаємо дані в глобальний стан (Jotai)
-			setIsAuthenticated(true);
-			setUser({
-				name: formData.email.split('@')[0], // Тимчасово беремо ім'я з пошти
-				email: formData.email
+		try {
+			// 2. РЕАЛЬНИЙ ЗАПИТ НА СЕРВЕР
+			const response = await fetch('http://localhost:5000/api/auth/login', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(formData),
 			});
 
-			setIsLoading(false);
+			const data = await response.json();
 
-			// 4. Перенаправляємо в профіль
-			navigate('/profile');
-		}, 1500);
+			if (!response.ok) {
+				throw new Error(data.error || 'Невірний логін або пароль');
+			}
+
+			// 3. Успішний вхід: Зберігаємо дані через Jotai (це оновить і localStorage)
+			login({ user: data.user, token: data.token });
+
+			// 4. Перенаправляємо на головну
+			navigate('/');
+
+		} catch (err: any) {
+			console.error(err);
+			setError(err.message || 'Сталася помилка при вході');
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	return (
@@ -178,7 +187,7 @@ const LoginPage = () => {
 							className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-sky-500 hover:shadow-lg hover:shadow-sky-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
 						>
 							{isLoading ? (
-								<span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								<Loader2 className="animate-spin w-5 h-5" />
 							) : (
 								<>
 									Увійти <ArrowRight size={20} />

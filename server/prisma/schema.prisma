@@ -1,5 +1,3 @@
-// server/prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,54 +12,48 @@ model User {
   email     String   @unique
   password  String
   name      String?
-  role      String   @default("user") // "admin" або "user"
+  role      String   @default("USER")
+  phone     String?  // Нове поле
+  address   String?  // Нове поле
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
   orders    Order[]
 }
 
 model Product {
   id          Int      @id @default(autoincrement())
   name        String
-  slug        String   @unique // для URL, наприклад "logitech-g-pro"
+  slug        String   @unique
   description String
-  price       Int
-  oldPrice    Int?
+  price       Float
+  oldPrice    Float?
   image       String
-  images      String[] // Масив посилань на фото
+  images      String[]
   category    String
-  inStock     Boolean  @default(true)
   rating      Float    @default(0)
   reviews     Int      @default(0)
-  colors      Json?    // Зберігаємо кольори як JSON: [{name: "Black", hex: "#000"}]
-  specs       Json?    // Характеристики як JSON
+  inStock     Boolean  @default(true)
+  colors      Json?
+  specs       Json?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
   orderItems  OrderItem[]
 }
 
 model Order {
-  id          Int         @id @default(autoincrement())
-  createdAt   DateTime    @default(now())
-  status      String      @default("pending") // pending, paid, shipped
-  total       Int
-  user        User?       @relation(fields: [userId], references: [id])
-  userId      Int?
-  items       OrderItem[]
-  
-  // Дані доставки (якщо юзер не зареєстрований)
-  guestName   String?
-  guestPhone  String?
-  guestEmail  String?
-  address     String?
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @default(now())
+  status    String      @default("processing") // processing, delivered, cancelled
+  total     Float
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id])
+  items     OrderItem[]
 }
 
 model OrderItem {
   id        Int     @id @default(autoincrement())
   quantity  Int
-  price     Int     // Ціна на момент покупки
-  order     Order   @relation(fields: [orderId], references: [id])
+  price     Float   // Ціна на момент покупки
   orderId   Int
-  product   Product @relation(fields: [productId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id])
   productId Int
+  product   Product @relation(fields: [productId], references: [id])
 }

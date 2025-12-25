@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle, Phone } from 'lucide-react';
-import { useSetAtom } from 'jotai'; // 1. Імпорт Jotai
-import { isAuthenticatedAtom, userAtom } from '../../store/authAtoms'; // 2. Імпорт атомів
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle, Phone, Loader2 } from 'lucide-react'; // Додав Loader2
+import { useSetAtom } from 'jotai';
+import { loginAtom } from '../../store/authAtoms'; // Використовуємо loginAtom для правильного збереження
 
 const RegisterPage = () => {
 	const navigate = useNavigate();
-
-	// Отримуємо функції для запису в атоми
-	const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
-	const setUser = useSetAtom(userAtom);
+	const login = useSetAtom(loginAtom);
 
 	// --- СТАНИ ---
 	const [formData, setFormData] = useState({
@@ -37,8 +34,8 @@ const RegisterPage = () => {
 		setError(null);
 
 		// 1. Валідація
-		if (!formData.name || !formData.email || !formData.phone || !formData.password) {
-			setError('Будь ласка, заповніть всі поля, включаючи телефон');
+		if (!formData.name || !formData.email || !formData.password) {
+			setError('Будь ласка, заповніть обов\'язкові поля (Ім\'я, Email, Пароль)');
 			setIsLoading(false);
 			return;
 		}
@@ -55,24 +52,42 @@ const RegisterPage = () => {
 			return;
 		}
 
-		// 2. Імітація запиту реєстрації
-		setTimeout(() => {
-			console.log('User Registered:', formData);
-			setIsLoading(false);
-			setSuccess(true); // Показуємо повідомлення про успіх
-
-			// 3. Автоматичний вхід (Auto-login)
-			setIsAuthenticated(true);
-			setUser({
-				name: formData.name, // Беремо введене ім'я
-				email: formData.email
+		try {
+			// 2. РЕАЛЬНИЙ ЗАПИТ НА СЕРВЕР
+			const response = await fetch('http://localhost:5000/api/auth/register', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					name: formData.name,
+					email: formData.email,
+					password: formData.password
+					// phone: formData.phone // Якщо додасте поле phone в базу даних, розкоментуйте це
+				}),
 			});
 
-			// 4. Перенаправлення через 1.5 секунди (щоб юзер побачив галочку успіху)
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data.error || 'Помилка реєстрації');
+			}
+
+			// 3. Успіх
+			setSuccess(true);
+
+			// Зберігаємо юзера і токен через Jotai (це оновить localStorage)
+			login({ user: data.user, token: data.token });
+
+			// 4. Перенаправлення через 1.5 секунди
 			setTimeout(() => {
-				navigate('/profile'); // Ведемо одразу в кабінет
+				navigate('/profile'); // Або на головну '/'
 			}, 1500);
-		}, 1500);
+
+		} catch (err: any) {
+			console.error(err);
+			setError(err.message || 'Щось пішло не так');
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	return (
@@ -250,7 +265,7 @@ const RegisterPage = () => {
 							className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-sky-500 hover:shadow-lg hover:shadow-sky-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
 						>
 							{isLoading ? (
-								<span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+								<Loader2 className="animate-spin w-5 h-5" />
 							) : (
 								<>
 									Створити акаунт <ArrowRight size={20} />
