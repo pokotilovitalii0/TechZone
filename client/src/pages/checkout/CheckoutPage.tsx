@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAtom, useAtomValue } from 'jotai';
 import { cartAtom, cartTotalPriceAtom } from '../../store/cartAtoms';
-import { ArrowLeft, CheckCircle, Truck, CreditCard, Banknote, MapPin, User, Phone } from 'lucide-react';
+import { userAtom } from '../../store/authAtoms';
+import { ArrowLeft, CheckCircle, Truck, CreditCard, Banknote, MapPin, User, Phone, Loader2 } from 'lucide-react';
 
 const CheckoutPage = () => {
 	const navigate = useNavigate();
 
-	// Стан кошика
+	// Atoms
 	const [cartItems, setCartItems] = useAtom(cartAtom);
 	const totalPrice = useAtomValue(cartTotalPriceAtom);
+	const [user] = useAtom(userAtom); // Читаємо юзера, але він необов'язковий
 
-	// Стан форми
+	// States
 	const [formData, setFormData] = useState({
 		firstName: '',
 		lastName: '',
@@ -25,30 +27,82 @@ const CheckoutPage = () => {
 	const [isSuccess, setIsSuccess] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 
-	// Якщо кошик порожній
-	if (cartItems.length === 0 && !isSuccess) {
-		return (
-			<div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-				<p className="text-slate-500 mb-4">Ваш кошик порожній</p>
-				<Link to="/" className="text-sky-500 font-bold hover:underline">Повернутися до покупок</Link>
-			</div>
-		);
-	}
+	// 1. Якщо кошик порожній, повертаємо назад
+	useEffect(() => {
+		if (cartItems.length === 0 && !isSuccess) {
+			navigate('/catalog');
+		}
+	}, [cartItems, isSuccess, navigate]);
+
+	// 2. Автозаповнення (тільки якщо юзер увійшов)
+	useEffect(() => {
+		if (user) {
+			const names = (user.name || '').split(' ');
+			setFormData(prev => ({
+				...prev,
+				firstName: names[0] || '',
+				lastName: names.slice(1).join(' ') || '',
+				// Якщо у юзера збережена пошта, можна було б додати, але у формі її немає
+			}));
+		}
+	}, [user]);
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
 		setFormData({ ...formData, [e.target.name]: e.target.value });
 	};
 
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+
+		// --- ВИДАЛЕНО ПЕРЕВІРКУ НА !USER ---
+		// Тепер дозволяємо йти далі навіть без акаунта
+
 		setIsLoading(true);
 
-		setTimeout(() => {
-			setIsLoading(false);
+		try {
+			const token = localStorage.getItem('token');
+			const fullAddress = `${formData.city}, ${formData.deliveryMethod === 'nova_poshta' ? 'Відділення ' + formData.warehouse : formData.warehouse}`;
+			const fullName = `${formData.firstName} ${formData.lastName}`;
+
+			// Формуємо заголовки
+			const headers: HeadersInit = {
+				'Content-Type': 'application/json',
+			};
+
+			// Додаємо токен ТІЛЬКИ якщо він є (користувач залогінений)
+			if (token && user) {
+				headers['Authorization'] = `Bearer ${token}`;
+			}
+
+			const response = await fetch('http://localhost:5000/api/orders', {
+				method: 'POST',
+				headers: headers,
+				body: JSON.stringify({
+					items: cartItems,
+					total: totalPrice,
+					contactInfo: {
+						name: fullName,
+						phone: formData.phone,
+						address: fullAddress
+					}
+				})
+			});
+
+			if (!response.ok) {
+				throw new Error('Не вдалося створити замовлення');
+			}
+
+			// Успіх
 			setIsSuccess(true);
-			setCartItems([]);
+			setCartItems([]); // Очищаємо кошик
 			window.scrollTo(0, 0);
-		}, 2000);
+
+		} catch (error) {
+			console.error(error);
+			alert('Помилка при оформленні. Спробуйте ще раз.');
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	// --- ЕКРАН УСПІХУ ---
@@ -61,29 +115,56 @@ const CheckoutPage = () => {
 					</div>
 					<h2 className="text-3xl font-black text-slate-900 mb-2">Дякуємо!</h2>
 					<p className="text-slate-500 mb-8">
-						Ваше замовлення <span className="text-slate-900 font-bold">#TR-{Math.floor(Math.random() * 10000)}</span> успішно оформлено. Ми зв'яжемося з вами найближчим часом.
+						Ваше замовлення успішно оформлено. Ми зв'яжемося з вами найближчим часом для підтвердження.
 					</p>
-					<button
-						onClick={() => navigate('/')}
-						className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-sky-500 transition-all shadow-lg hover:shadow-sky-200"
-					>
-						На головну
-					</button>
+					<div className="space-y-3">
+						{/* Показуємо кнопку профілю тільки якщо юзер залогінений */}
+						{user ? (
+							<button
+								onClick={() => navigate('/profile')}
+								className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-sky-500 transition-all shadow-lg hover:shadow-sky-200"
+							>
+								Переглянути замовлення
+							</button>
+						) : (
+							<div className="text-sm text-slate-400 pb-2">
+								Створіть акаунт, щоб відстежувати історію покупок.
+							</div>
+						)}
+
+						<button
+							onClick={() => navigate('/')}
+							className="w-full bg-white text-slate-900 font-bold py-4 rounded-xl border border-slate-200 hover:bg-slate-50 transition-all"
+						>
+							На головну
+						</button>
+					</div>
 				</div>
 			</div>
 		);
 	}
+
+	if (cartItems.length === 0) return null;
 
 	return (
 		<div className="min-h-screen bg-slate-50 py-8 lg:py-12">
 			<div className="container mx-auto px-4 max-w-6xl">
 
 				{/* Хедер сторінки */}
-				<div className="flex items-center gap-4 mb-8">
-					<button onClick={() => navigate(-1)} className="p-2 bg-white border border-slate-200 rounded-full hover:bg-slate-100 transition-colors">
-						<ArrowLeft size={20} className="text-slate-600" />
-					</button>
-					<h1 className="text-2xl sm:text-3xl font-black text-slate-900">Оформлення замовлення</h1>
+				<div className="flex items-center justify-between mb-8">
+					<div className="flex items-center gap-4">
+						<button onClick={() => navigate(-1)} className="p-2 bg-white border border-slate-200 rounded-full hover:bg-slate-100 transition-colors">
+							<ArrowLeft size={20} className="text-slate-600" />
+						</button>
+						<h1 className="text-2xl sm:text-3xl font-black text-slate-900">Оформлення замовлення</h1>
+					</div>
+
+					{/* Підказка для гостей */}
+					{!user && (
+						<Link to="/login" className="hidden sm:inline-flex text-sm text-sky-600 font-bold hover:underline">
+							Увійти в акаунт
+						</Link>
+					)}
 				</div>
 
 				<form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -105,6 +186,7 @@ const CheckoutPage = () => {
 										<input
 											required
 											name="firstName"
+											value={formData.firstName}
 											onChange={handleChange}
 											type="text"
 											placeholder="Іван"
@@ -117,6 +199,7 @@ const CheckoutPage = () => {
 									<input
 										required
 										name="lastName"
+										value={formData.lastName}
 										onChange={handleChange}
 										type="text"
 										placeholder="Іванов"
@@ -130,6 +213,7 @@ const CheckoutPage = () => {
 										<input
 											required
 											name="phone"
+											value={formData.phone}
 											onChange={handleChange}
 											type="tel"
 											placeholder="+380 99 123 45 67"
@@ -174,6 +258,7 @@ const CheckoutPage = () => {
 									<input
 										required
 										name="city"
+										value={formData.city}
 										onChange={handleChange}
 										type="text"
 										placeholder="Київ"
@@ -185,6 +270,7 @@ const CheckoutPage = () => {
 										<label className="text-sm font-bold text-slate-700 ml-1">Відділення</label>
 										<select
 											name="warehouse"
+											value={formData.warehouse}
 											onChange={handleChange}
 											className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:border-sky-500 outline-none transition-all appearance-none cursor-pointer"
 										>
@@ -200,6 +286,7 @@ const CheckoutPage = () => {
 										<input
 											required
 											name="warehouse"
+											value={formData.warehouse}
 											onChange={handleChange}
 											type="text"
 											placeholder="вул. Хрещатик, 1"
@@ -290,7 +377,7 @@ const CheckoutPage = () => {
 								className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-sky-500 hover:shadow-lg hover:shadow-sky-200 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
 							>
 								{isLoading ? (
-									<span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+									<Loader2 className="animate-spin w-5 h-5" />
 								) : (
 									'Підтвердити замовлення'
 								)}

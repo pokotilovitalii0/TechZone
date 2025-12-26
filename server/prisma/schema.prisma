@@ -41,10 +41,18 @@ model Product {
 model Order {
   id        Int         @id @default(autoincrement())
   createdAt DateTime    @default(now())
-  status    String      @default("processing") // processing, delivered, cancelled
+  status    String      @default("processing")
   total     Float
-  userId    Int
-  user      User        @relation(fields: [userId], references: [id])
+  
+  // Зміни тут:
+  userId    Int?        // Стало необов'язковим (?)
+  user      User?       @relation(fields: [userId], references: [id]) // Стало необов'язковим (?)
+  
+  // Додаємо поля, щоб знати, куди відправляти (для гостей і юзерів)
+  name      String      @default("")
+  phone     String      @default("")
+  address   String      @default("")
+
   items     OrderItem[]
 }
 

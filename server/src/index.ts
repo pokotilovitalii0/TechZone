@@ -74,11 +74,14 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // USER PROFILE (Захищені маршрути)
-// Отримати профіль
+// 1. Отримати профіль
 app.get('/api/user/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
 	try {
+		// Додаємо перевірку на існування req.user
+		if (!req.user) return res.sendStatus(403);
+
 		const user = await prisma.user.findUnique({
-			where: { id: req.user?.userId },
+			where: { id: req.user.userId },
 			select: { name: true, email: true, phone: true, address: true }
 		});
 		res.json(user);
@@ -87,12 +90,14 @@ app.get('/api/user/profile', authenticateToken, async (req: AuthRequest, res: Re
 	}
 });
 
-// Оновити профіль
+// 2. Оновити профіль
 app.put('/api/user/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
 	const { name, phone, address } = req.body;
 	try {
+		if (!req.user) return res.sendStatus(403);
+
 		const updatedUser = await prisma.user.update({
-			where: { id: req.user?.userId },
+			where: { id: req.user.userId },
 			data: { name, phone, address }
 		});
 		res.json(updatedUser);
@@ -101,17 +106,65 @@ app.put('/api/user/profile', authenticateToken, async (req: AuthRequest, res: Re
 	}
 });
 
-// Отримати замовлення
+// 3. Отримати замовлення
 app.get('/api/user/orders', authenticateToken, async (req: AuthRequest, res: Response) => {
 	try {
+		if (!req.user) return res.sendStatus(403);
+
 		const orders = await prisma.order.findMany({
-			where: { userId: req.user?.userId },
+			where: { userId: req.user.userId },
 			include: { items: { include: { product: true } } },
 			orderBy: { createdAt: 'desc' }
 		});
 		res.json(orders);
 	} catch (error) {
 		res.status(500).json({ error: 'Failed to fetch orders' });
+	}
+});
+
+// 4. Створити нове замовлення (Для користувачів ТА гостей)
+app.post('/api/orders', async (req: Request, res: Response) => {
+	const { items, total, contactInfo } = req.body;
+
+	let userId: number | null = null;
+
+	const authHeader = req.headers['authorization'];
+	const token = authHeader && authHeader.split(' ')[1];
+
+	if (token) {
+		try {
+			const decoded: any = jwt.verify(token, JWT_SECRET);
+			userId = decoded.userId;
+		} catch (e) {
+			console.log("Token invalid or expired, proceeding as guest");
+		}
+	}
+
+	try {
+		const order = await prisma.order.create({
+			data: {
+				// --- ВИПРАВЛЕННЯ ТУТ ---
+				// Якщо userId === null, ми передаємо undefined, що задовольняє типи Prisma
+				userId: userId ?? undefined,
+
+				total: Number(total),
+				status: 'processing',
+				name: contactInfo?.name || "",
+				phone: contactInfo?.phone || "",
+				address: contactInfo?.address || "",
+				items: {
+					create: items.map((item: any) => ({
+						productId: Number(item.id),
+						quantity: Number(item.quantity),
+						price: Number(item.price)
+					}))
+				}
+			}
+		});
+		res.json(order);
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ error: 'Failed to create order' });
 	}
 });
 
