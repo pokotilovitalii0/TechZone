@@ -1,8 +1,23 @@
 import { useState, useEffect } from 'react';
-import { ArrowRight, Star, ShoppingCart, Truck, ShieldCheck, RefreshCw, Headphones, MousePointer2, Keyboard, Headphones as AudioIcon } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowRight, Star, ShoppingCart, Truck, ShieldCheck, RefreshCw, Headphones, MousePointer2, Keyboard, Headphones as AudioIcon, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useSetAtom } from 'jotai';
+import { addToCartAtom } from '../../store/cartAtoms';
 
 import attachSharkX68HE from '@/assets/HomePage/AttachSharkx68he.webp';
+
+// --- TYPES ---
+interface Product {
+	id: number;
+	name: string;
+	slug: string;
+	price: number;
+	category: string;
+	image: string;
+	rating: number;
+	inStock: boolean;
+	colors?: any;
+}
 
 const HERO_SLIDES = [
 	{
@@ -31,22 +46,65 @@ const HERO_SLIDES = [
 	}
 ];
 
-const TRENDING_PRODUCTS = [
-	{ id: 1, name: "Logitech G Pro X", category: "Миші", price: 4999, rating: 4.9, image: "https://resource.logitechg.com/w_692,c_lpad,ar_4:3,q_auto,f_auto,dpr_1.0/d_transparent.gif/content/dam/gaming/en/products/pro-x-superlight/pro-x-superlight-black-gallery-1.png?v=1" },
-	{ id: 2, name: "Razer Huntsman V2", category: "Клавіатури", price: 7499, rating: 4.8, image: "https://assets3.razerzone.com/A-9X6a7i-77M6qF-77M6qF/razer-huntsman-v2-tenkeyless-linear-optical-switch-black-gallery-1.png" },
-	{ id: 3, name: "SteelSeries Arctis 7", category: "Навушники", price: 6299, rating: 4.7, image: "https://media.steelseriescdn.com/thumbs/catalogue/products/01058-arctis-7-black-2019-edition/6563774130a8474ba499cecd7db4123e.png.350x280_q100_crop-fit_optimize.png" },
-	{ id: 4, name: "HyperX QuadCast S", category: "Мікрофони", price: 5599, rating: 4.9, image: "https://row.hyperx.com/cdn/shop/products/hyperx_quadcast_s_black_1_front_900x.png?v=1660613669" },
-];
-
 export default function HomePage() {
-	const [currentSlide, setCurrentSlide] = useState(0);
+	const navigate = useNavigate();
+	const addToCart = useSetAtom(addToCartAtom);
 
+	// States
+	const [currentSlide, setCurrentSlide] = useState(0);
+	const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
+	const [isLoading, setIsLoading] = useState(true);
+
+	// 1. Slider Timer
 	useEffect(() => {
 		const timer = setInterval(() => {
 			setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
 		}, 5000);
 		return () => clearInterval(timer);
 	}, []);
+
+	// 2. Fetch Trending Products
+	useEffect(() => {
+		const fetchTrending = async () => {
+			try {
+				const response = await fetch('http://localhost:5000/api/products');
+				if (response.ok) {
+					const data = await response.json();
+					// Беремо перші 4 товари для блоку "В тренді"
+					// (В ідеалі бекенд мав би endpoint /api/products/trending, але поки slice)
+					setTrendingProducts(data.slice(0, 4));
+				}
+			} catch (error) {
+				console.error("Failed to fetch trending products", error);
+			} finally {
+				setIsLoading(false);
+			}
+		};
+
+		fetchTrending();
+	}, []);
+
+	const handleAddToCart = (e: React.MouseEvent, product: Product) => {
+		e.preventDefault();
+
+		// Спроба дістати колір
+		let selectedColor = 'Default';
+		if (Array.isArray(product.colors) && product.colors.length > 0) {
+			selectedColor = product.colors[0].name || product.colors[0].hex || 'Default';
+		}
+
+		addToCart({
+			id: product.id,
+			name: product.name,
+			price: product.price,
+			image: product.image,
+			quantity: 1,
+			selectedColor: selectedColor
+		});
+
+		// Можна додати toast notification тут
+		alert(`"${product.name}" додано в кошик!`);
+	};
 
 	return (
 		<div className="bg-white min-h-screen overflow-x-hidden">
@@ -127,9 +185,9 @@ export default function HomePage() {
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-						{/* Велика картка - Клавіатури (Світла) */}
+						{/* Велика картка - Клавіатури */}
 						<Link to="/catalog/keyboards" className="md:col-span-8 group relative overflow-hidden rounded-3xl bg-slate-50 border border-slate-100 h-[300px] md:h-[400px]">
-							<div className="absolute                   top-0 right-[-50px] w-2/3 h-full overflow-hidden">
+							<div className="absolute top-0 right-[-50px] w-2/3 h-full overflow-hidden">
 								<img
 									src={attachSharkX68HE}
 									className="w-full h-full object-cover opacity-20 grayscale group-hover:grayscale-0 group-hover:opacity-40 group-hover:scale-110 transition-all duration-700"
@@ -182,7 +240,7 @@ export default function HomePage() {
 				</div>
 			</section>
 
-			{/* === TRENDING PRODUCTS === */}
+			{/* === TRENDING PRODUCTS (REAL DATA) === */}
 			<section className="py-20 bg-slate-50">
 				<div className="container mx-auto px-6 lg:px-12">
 					<div className="flex justify-between items-end mb-12">
@@ -195,28 +253,58 @@ export default function HomePage() {
 						</Link>
 					</div>
 
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-						{TRENDING_PRODUCTS.map((product) => (
-							<div key={product.id} className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100 group relative">
-								<div className="relative bg-gray-50 rounded-xl h-52 flex items-center justify-center mb-5 overflow-hidden">
-									<img src={product.image} alt={product.name} className="h-36 object-contain group-hover:scale-110 transition-transform duration-500" />
-									<button className="absolute bottom-4 right-4 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-slate-900 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0">
-										<ShoppingCart size={20} />
-									</button>
-								</div>
-								<div className="space-y-3">
-									<p className="text-[10px] font-black text-sky-500 uppercase tracking-widest">{product.category}</p>
-									<h3 className="font-bold text-slate-900 text-lg leading-tight group-hover:text-sky-600 transition-colors">{product.name}</h3>
-									<div className="flex justify-between items-center pt-2">
-										<span className="text-2xl font-black text-slate-900">{product.price} ₴</span>
-										<div className="flex items-center gap-1 text-yellow-400 text-sm font-bold bg-yellow-50 px-2 py-1 rounded-lg">
-											<Star size={14} fill="currentColor" /> {product.rating}
+					{isLoading ? (
+						<div className="flex justify-center py-20">
+							<Loader2 className="w-10 h-10 text-sky-500 animate-spin" />
+						</div>
+					) : (
+						<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+							{trendingProducts.length > 0 ? (
+								trendingProducts.map((product) => (
+									<Link to={`/product/${product.slug}`} key={product.id} className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-2xl transition-all duration-300 border border-gray-100 group relative flex flex-col">
+
+										{/* Image Container */}
+										<div className="relative bg-gray-50 rounded-xl h-52 flex items-center justify-center mb-5 overflow-hidden">
+											<img
+												src={product.image}
+												alt={product.name}
+												className={`h-36 object-contain mix-blend-multiply group-hover:scale-110 transition-transform duration-500 ${!product.inStock && 'grayscale opacity-60'}`}
+											/>
+
+											{/* Add to Cart Button */}
+											{product.inStock && (
+												<button
+													onClick={(e) => handleAddToCart(e, product)}
+													className="absolute bottom-4 right-4 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-slate-900 hover:bg-sky-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 translate-y-4 group-hover:translate-y-0"
+												>
+													<ShoppingCart size={20} />
+												</button>
+											)}
 										</div>
-									</div>
+
+										{/* Content */}
+										<div className="space-y-3 flex-grow flex flex-col justify-end">
+											<p className="text-[10px] font-black text-sky-500 uppercase tracking-widest">{product.category}</p>
+											<h3 className="font-bold text-slate-900 text-lg leading-tight group-hover:text-sky-600 transition-colors line-clamp-2">
+												{product.name}
+											</h3>
+
+											<div className="flex justify-between items-center pt-2">
+												<span className="text-2xl font-black text-slate-900">{product.price} ₴</span>
+												<div className="flex items-center gap-1 text-yellow-400 text-sm font-bold bg-yellow-50 px-2 py-1 rounded-lg">
+													<Star size={14} fill="currentColor" /> {product.rating}
+												</div>
+											</div>
+										</div>
+									</Link>
+								))
+							) : (
+								<div className="col-span-4 text-center text-slate-500 py-10">
+									Товарів поки немає. Загляньте в каталог!
 								</div>
-							</div>
-						))}
-					</div>
+							)}
+						</div>
+					)}
 				</div>
 			</section>
 		</div>
