@@ -15,14 +15,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key';
 app.use(cors());
 app.use(express.json());
 
-// --- MIDDLEWARE: Перевірка токена ---
+// --- MIDDLEWARE ---
 interface AuthRequest extends Request {
 	user?: { userId: number; role: string };
 }
 
 const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
 	const authHeader = req.headers['authorization'];
-	const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
+	const token = authHeader && authHeader.split(' ')[1];
 
 	if (!token) return res.sendStatus(401);
 
@@ -73,13 +73,10 @@ app.post('/api/auth/login', async (req, res) => {
 	}
 });
 
-// USER PROFILE (Захищені маршрути)
-// 1. Отримати профіль
+// USER PROFILE
 app.get('/api/user/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
 	try {
-		// Додаємо перевірку на існування req.user
 		if (!req.user) return res.sendStatus(403);
-
 		const user = await prisma.user.findUnique({
 			where: { id: req.user.userId },
 			select: { name: true, email: true, phone: true, address: true }
@@ -90,12 +87,10 @@ app.get('/api/user/profile', authenticateToken, async (req: AuthRequest, res: Re
 	}
 });
 
-// 2. Оновити профіль
 app.put('/api/user/profile', authenticateToken, async (req: AuthRequest, res: Response) => {
 	const { name, phone, address } = req.body;
 	try {
 		if (!req.user) return res.sendStatus(403);
-
 		const updatedUser = await prisma.user.update({
 			where: { id: req.user.userId },
 			data: { name, phone, address }
@@ -106,11 +101,9 @@ app.put('/api/user/profile', authenticateToken, async (req: AuthRequest, res: Re
 	}
 });
 
-// 3. Отримати замовлення
 app.get('/api/user/orders', authenticateToken, async (req: AuthRequest, res: Response) => {
 	try {
 		if (!req.user) return res.sendStatus(403);
-
 		const orders = await prisma.order.findMany({
 			where: { userId: req.user.userId },
 			include: { items: { include: { product: true } } },
@@ -122,12 +115,13 @@ app.get('/api/user/orders', authenticateToken, async (req: AuthRequest, res: Res
 	}
 });
 
-// 4. Створити нове замовлення (Для користувачів ТА гостей)
+// === СТВОРЕННЯ ЗАМОВЛЕННЯ (Гість або Юзер) ===
 app.post('/api/orders', async (req: Request, res: Response) => {
 	const { items, total, contactInfo } = req.body;
 
 	let userId: number | null = null;
 
+	// Перевіряємо, чи є токен (чи це зареєстрований юзер)
 	const authHeader = req.headers['authorization'];
 	const token = authHeader && authHeader.split(' ')[1];
 
@@ -136,22 +130,24 @@ app.post('/api/orders', async (req: Request, res: Response) => {
 			const decoded: any = jwt.verify(token, JWT_SECRET);
 			userId = decoded.userId;
 		} catch (e) {
-			console.log("Token invalid or expired, proceeding as guest");
+			console.log("Guest checkout (token invalid or missing)");
 		}
 	}
 
 	try {
 		const order = await prisma.order.create({
 			data: {
-				// --- ВИПРАВЛЕННЯ ТУТ ---
-				// Якщо userId === null, ми передаємо undefined, що задовольняє типи Prisma
+				// Якщо userId немає, ставимо undefined (Prisma це зрозуміє як NULL у базі)
 				userId: userId ?? undefined,
 
 				total: Number(total),
 				status: 'processing',
-				name: contactInfo?.name || "",
+
+				// Зберігаємо дані доставки
+				name: contactInfo?.name || "Гість",
 				phone: contactInfo?.phone || "",
 				address: contactInfo?.address || "",
+
 				items: {
 					create: items.map((item: any) => ({
 						productId: Number(item.id),
