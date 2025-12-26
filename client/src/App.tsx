@@ -16,17 +16,16 @@ import DeliveryPage from './pages/info/DeliveryPage';
 import WarrantyPage from './pages/info/WarrantyPage';
 import ReturnsPage from './pages/info/ReturnsPage';
 import ScrollToTop from './components/ScrollToTop'; // Імпортуємо наш новий компонент
+import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 
 function App() {
   return (
     <>
-      {/* Компонент, що слідкує за зміною URL і крутить скрол вгору */}
       <ScrollToTop />
-
       <Routes>
-        {/* Батьківський маршрут - Layout */}
         <Route path="/" element={<Layout />}>
-          {/* Вкладені маршрути */}
+          <Route path="/admin/orders" element={<AdminOrdersPage />} />
+
           <Route index element={<HomePage />} />
           <Route path="catalog" element={<CatalogPage />} />
           <Route path="/catalog/:categorySlug" element={<CatalogPage />} />
