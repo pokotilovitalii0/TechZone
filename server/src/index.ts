@@ -33,6 +33,21 @@ const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) 
 	});
 };
 
+// Для адміна (залишаємо як було)
+const authenticateAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+	const authHeader = req.headers['authorization'];
+	const token = authHeader && authHeader.split(' ')[1];
+
+	if (!token) return res.sendStatus(401);
+
+	jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+		if (err) return res.sendStatus(403);
+		if (user.role !== 'ADMIN') return res.status(403).json({ error: 'Access denied' });
+		req.user = user;
+		next();
+	});
+};
+
 // --- ROUTES ---
 
 app.get('/', (req, res) => {
@@ -115,13 +130,39 @@ app.get('/api/user/orders', authenticateToken, async (req: AuthRequest, res: Res
 	}
 });
 
-// === СТВОРЕННЯ ЗАМОВЛЕННЯ (Гість або Юзер) ===
+// ADMIN ORDERS
+app.get('/api/admin/orders', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+	try {
+		const orders = await prisma.order.findMany({
+			include: { items: { include: { product: true } } },
+			orderBy: { createdAt: 'desc' }
+		});
+		res.json(orders);
+	} catch (error) {
+		res.status(500).json({ error: 'Failed to fetch orders' });
+	}
+});
+
+app.put('/api/admin/orders/:id/status', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+	const { id } = req.params;
+	const { status } = req.body;
+	try {
+		const order = await prisma.order.update({
+			where: { id: Number(id) },
+			data: { status }
+		});
+		res.json(order);
+	} catch (error) {
+		res.status(500).json({ error: 'Failed to update order' });
+	}
+});
+
+// CREATE ORDER
 app.post('/api/orders', async (req: Request, res: Response) => {
 	const { items, total, contactInfo } = req.body;
 
 	let userId: number | null = null;
 
-	// Перевіряємо, чи є токен (чи це зареєстрований юзер)
 	const authHeader = req.headers['authorization'];
 	const token = authHeader && authHeader.split(' ')[1];
 
@@ -137,17 +178,12 @@ app.post('/api/orders', async (req: Request, res: Response) => {
 	try {
 		const order = await prisma.order.create({
 			data: {
-				// Якщо userId немає, ставимо undefined (Prisma це зрозуміє як NULL у базі)
 				userId: userId ?? undefined,
-
 				total: Number(total),
 				status: 'processing',
-
-				// Зберігаємо дані доставки
 				name: contactInfo?.name || "Гість",
 				phone: contactInfo?.phone || "",
 				address: contactInfo?.address || "",
-
 				items: {
 					create: items.map((item: any) => ({
 						productId: Number(item.id),
@@ -164,12 +200,33 @@ app.post('/api/orders', async (req: Request, res: Response) => {
 	}
 });
 
-// PRODUCTS
+// --- ОНОВЛЕНИЙ МАРШРУТ ПРОДУКТІВ (ПОШУК) ---
 app.get('/api/products', async (req, res) => {
 	try {
-		const products = await prisma.product.findMany();
+		const { q } = req.query; // Отримуємо параметр ?q=...
+
+		const where: any = {};
+
+		// Якщо є параметр q, додаємо умови пошуку
+		if (q) {
+			where.OR = [
+				// Шукаємо в назві (без урахування регістру)
+				{ name: { contains: String(q), mode: 'insensitive' } },
+				// Шукаємо в описі
+				{ description: { contains: String(q), mode: 'insensitive' } },
+				// Шукаємо в категорії
+				{ category: { contains: String(q), mode: 'insensitive' } }
+			];
+		}
+
+		const products = await prisma.product.findMany({
+			where: where,
+			orderBy: { createdAt: 'desc' } // Спочатку нові
+		});
+
 		res.json(products);
 	} catch (error) {
+		console.error(error);
 		res.status(500).json({ error: 'Failed to fetch products' });
 	}
 });

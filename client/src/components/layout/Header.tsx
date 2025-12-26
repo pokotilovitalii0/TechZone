@@ -9,17 +9,6 @@ import { wishlistAtom } from '../../store/wishlistAtoms';
 import MobileMenu from './MobileMenu';
 import logoImg from '@/assets/logo/logo.png';
 
-// --- SEARCH DATABASE (МОК ДЛЯ ПОШУКУ) ---
-// В реальному проекті це береться з API або глобального стору продуктів
-const SEARCH_DB = [
-	{ id: 1, name: 'Logitech G Pro X Superlight', category: 'Мишки', image: 'https://content1.rozetka.com.ua/goods/images/big/309983933.jpg', price: 5999 },
-	{ id: 2, name: 'Keychron K2 Pro', category: 'Клавіатури', image: 'https://content2.rozetka.com.ua/goods/images/big/323337966.jpg', price: 4500 },
-	{ id: 3, name: 'HyperX Cloud Alpha', category: 'Навушники', image: 'https://content2.rozetka.com.ua/goods/images/big/11547900.jpg', price: 7200 },
-	{ id: 4, name: 'Razer DeathAdder V3', category: 'Мишки', image: 'https://content1.rozetka.com.ua/goods/images/big/285623086.jpg', price: 6999 },
-	{ id: 5, name: 'Asus ROG Azoth', category: 'Клавіатури', image: 'https://content1.rozetka.com.ua/goods/images/big/317377543.jpg', price: 10999 },
-	{ id: 6, name: 'SteelSeries QcK Heavy', category: 'Аксесуари', image: 'https://content2.rozetka.com.ua/goods/images/big/10747043.jpg', price: 1499 },
-];
-
 const NAV_ITEMS = [
 	{ label: 'Каталог', path: '/catalog' },
 	{ label: 'Миші', path: '/catalog/mice' },
@@ -33,9 +22,10 @@ const Header = () => {
 
 	// --- STATE ---
 	const [searchTerm, setSearchTerm] = useState('');
-	const [suggestions, setSuggestions] = useState<typeof SEARCH_DB>([]);
+	const [suggestions, setSuggestions] = useState<any[]>([]); // Дані тепер приходять з API
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
-	const searchRef = useRef<HTMLDivElement>(null); // Для кліку поза межами
+	const [isSearching, setIsSearching] = useState(false); // Індикатор завантаження
+	const searchRef = useRef<HTMLDivElement>(null);
 
 	// --- ATOMS ---
 	const totalItems = useAtomValue(cartTotalItemsAtom);
@@ -45,17 +35,32 @@ const Header = () => {
 
 	// --- LOGIC ---
 
-	// 1. Живий пошук
+	// 1. Живий пошук (Debounce 300ms)
 	useEffect(() => {
-		if (searchTerm.trim().length > 0) {
-			const results = SEARCH_DB.filter(product =>
-				product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-				product.category.toLowerCase().includes(searchTerm.toLowerCase())
-			).slice(0, 5); // Показуємо максимум 5 підказок
-			setSuggestions(results);
-		} else {
+		// Якщо поле пусте — очищаємо результати
+		if (!searchTerm.trim()) {
 			setSuggestions([]);
+			return;
 		}
+
+		// Затримка перед запитом, щоб не перевантажувати сервер
+		const delayDebounceFn = setTimeout(async () => {
+			setIsSearching(true);
+			try {
+				// Запит на сервер з параметром q
+				const response = await fetch(`http://localhost:5000/api/products?q=${encodeURIComponent(searchTerm)}`);
+				if (response.ok) {
+					const data = await response.json();
+					setSuggestions(data.slice(0, 5)); // Показуємо тільки перші 5
+				}
+			} catch (error) {
+				console.error("Search error:", error);
+			} finally {
+				setIsSearching(false);
+			}
+		}, 300);
+
+		return () => clearTimeout(delayDebounceFn);
 	}, [searchTerm]);
 
 	// 2. Закриття при кліку поза межами
@@ -77,8 +82,8 @@ const Header = () => {
 		}
 	};
 
-	const handleSuggestionClick = (id: number) => {
-		navigate(`/product/${id}`);
+	const handleSuggestionClick = (slug: string) => {
+		navigate(`/product/${slug}`);
 		setSearchTerm('');
 		setIsSearchFocused(false);
 	};
@@ -113,10 +118,14 @@ const Header = () => {
 					{/* ACTIONS */}
 					<div className="flex items-center gap-4">
 
-						{/* --- SEARCH BAR WITH DROPDOWN --- */}
+						{/* --- SEARCH BAR --- */}
 						<div ref={searchRef} className="hidden lg:block relative z-50">
 							<div className={`flex items-center bg-gray-100 rounded-2xl px-4 py-2.5 transition-all duration-300 w-64 focus-within:w-80 focus-within:ring-2 focus-within:ring-sky-500/20 focus-within:bg-white focus-within:shadow-lg ${isSearchFocused ? 'bg-white shadow-lg w-80' : ''}`}>
-								<Search className={`w-4 h-4 transition-colors ${isSearchFocused ? 'text-sky-500' : 'text-gray-400'}`} />
+								{isSearching ? (
+									<Loader2 className="w-4 h-4 animate-spin text-sky-500" />
+								) : (
+									<Search className={`w-4 h-4 transition-colors ${isSearchFocused ? 'text-sky-500' : 'text-gray-400'}`} />
+								)}
 								<input
 									type="text"
 									placeholder="Пошук..."
@@ -143,7 +152,7 @@ const Header = () => {
 												{suggestions.map((item) => (
 													<button
 														key={item.id}
-														onClick={() => handleSuggestionClick(item.id)}
+														onClick={() => handleSuggestionClick(item.slug)}
 														className="w-full text-left px-4 py-3 hover:bg-slate-50 flex items-center gap-3 transition-colors group"
 													>
 														<div className="w-10 h-10 rounded-lg bg-white border border-slate-100 p-1 flex items-center justify-center shrink-0">
@@ -167,10 +176,12 @@ const Header = () => {
 											</div>
 										</>
 									) : (
-										<div className="p-6 text-center text-slate-500">
-											<Search className="w-8 h-8 mx-auto mb-2 text-slate-300 opacity-50" />
-											<p className="text-sm">Нічого не знайдено</p>
-										</div>
+										!isSearching && (
+											<div className="p-6 text-center text-slate-500">
+												<Search className="w-8 h-8 mx-auto mb-2 text-slate-300 opacity-50" />
+												<p className="text-sm">Нічого не знайдено</p>
+											</div>
+										)
 									)}
 								</div>
 							)}
@@ -201,8 +212,8 @@ const Header = () => {
 							<Link
 								to={isAuthenticated ? "/profile" : "/login"}
 								className={`p-2 rounded-full transition-colors ${isAuthenticated
-										? 'bg-sky-100 text-sky-600 hover:bg-sky-200'
-										: 'hover:bg-gray-100 text-slate-700 hover:text-sky-500'
+									? 'bg-sky-100 text-sky-600 hover:bg-sky-200'
+									: 'hover:bg-gray-100 text-slate-700 hover:text-sky-500'
 									}`}
 								aria-label={isAuthenticated ? "Мій профіль" : "Увійти"}
 							>
